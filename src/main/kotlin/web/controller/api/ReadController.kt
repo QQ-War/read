@@ -805,12 +805,32 @@ open class ReadController : BaseController() {
 
     private val pngDir = FileUtils.createFolderIfNotExist(appCtx.externalFiles, "assets","proxy")
 
+    private fun normalizeImageUrl(url: String): String {
+        // 1. 剥离 Legado 附加配置后缀 (如 ,{...} 或 ,%7B...)
+        var cleanUrl = url.split(",{")[0].split(",%7B")[0]
+        if (cleanUrl.contains(",")) {
+            val lastCommaIndex = cleanUrl.lastIndexOf(',')
+            if (lastCommaIndex > cleanUrl.lastIndexOf('/')) {
+                cleanUrl = cleanUrl.substring(0, lastCommaIndex)
+            }
+        }
+
+        // 2. 域名纠错 (Normalization)
+        if (cleanUrl.contains("bzmh.net")) {
+            cleanUrl = cleanUrl.replace("bzmh.net", "bzcdn.net")
+        }
+        
+        return cleanUrl.trim()
+    }
+
     @Mapping("/proxypng")
     open fun proxypng(ctx: Context, url: String?) = run {
-        //if (accessToken == null) throw DataThrowable().data(JsonResponse(false, NEED_LOGIN))
         if (url.isNullOrBlank()) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
-        logger.info("proxypng $url")
-        val sign = url.md5()
+        
+        val normalizedUrl = normalizeImageUrl(url)
+        logger.info("proxypng normalized: $normalizedUrl")
+        
+        val sign = normalizedUrl.md5()
         val valueFile = FileUtils.getFile(pngDir,sign)
         if(valueFile.exists()) {
             valueFile.inputStream().use { i ->
@@ -823,17 +843,37 @@ open class ReadController : BaseController() {
             ctx.flush()
         }else{
             val (nurl , headers)=geturlandheader(url)
-            val url = URL(nurl)
+            val finalUrl = normalizeImageUrl(nurl)
+            val requestUrl = URL(finalUrl)
             SslUtils.ignoreSsl();
-            val connection = url.openConnection() as HttpURLConnection
-            connection.setRequestMethod("GET")
+            val connection = requestUrl.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            
+            // 注入移动端浏览器指纹
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1")
+            connection.setRequestProperty("Accept", "image/webp,image/avif,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+            connection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+            connection.setRequestProperty("Sec-Fetch-Mode", "no-cors")
+            connection.setRequestProperty("Sec-Fetch-Dest", "image")
+            connection.setRequestProperty("Sec-Fetch-Site", "cross-site")
+
             headers.forEach{(k,v)->
                 connection.setRequestProperty(k,"$v");
             }
+            
+            if (connection.getRequestProperty("Referer") == null) {
+                val host = requestUrl.host
+                if (!host.isNullOrBlank()) {
+                    connection.setRequestProperty("Referer", "https://$host/")
+                }
+            }
+
+            connection.connectTimeout = 15000
+            connection.readTimeout = 20000
+            
             val responseCode = connection.getResponseCode();
-            //  读取响应
-            if (responseCode == HttpURLConnection.HTTP_OK) { // 200表示请求成功
-                val bos = ByteArrayOutputStream() //创建输出流对象
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val bos = ByteArrayOutputStream()
                 connection.getInputStream().use {  i ->
                     val b = ByteArray(4096)
                     var len: Int
@@ -843,15 +883,12 @@ open class ReadController : BaseController() {
                     }
                 }
                 valueFile.writeBytes(bos.toByteArray())
-                //ctx.contentType(connection.getHeaderField("Content-Type"))
-                //ctx.output(bos.toByteArray())
                 ctx.flush()
             } else {
-                logger.info("GET请求失败");
+                logger.info("GET请求失败: $responseCode for $finalUrl")
                 JsonResponse(isSuccess = false,errorMsg ="GET请求失败")
             }
         }
-
     }
 
 
