@@ -76,10 +76,14 @@ class AnalyzeByJSoup(doc: Any) {
                 val temp: List<String>? =
                     if (sourceRule.isCss) {
                         val lastIndex = ruleStrX.lastIndexOf('@')
-                        getResultLast(
-                            element.select(ruleStrX.substring(0, lastIndex)),
-                            ruleStrX.substring(lastIndex + 1)
-                        )
+                        if (lastIndex != -1) {
+                            getResultLast(
+                                element.select(ruleStrX.substring(0, lastIndex)),
+                                ruleStrX.substring(lastIndex + 1)
+                            )
+                        } else {
+                            getResultLast(element.select(ruleStrX), "text")
+                        }
                     } else {
                         getResultList(ruleStrX)
                     }
@@ -483,11 +487,16 @@ class AnalyzeByJSoup(doc: Any) {
 
     internal inner class SourceRule(ruleStr: String) {
         var isCss = false
-        var elementsRule: String = if (ruleStr.startsWith("@CSS:", true)) {
-            isCss = true
-            ruleStr.substring(5).trim { it <= ' ' }
-        } else {
-            ruleStr
+        var elementsRule: String = when {
+            ruleStr.startsWith("@CSS:", true) -> {
+                isCss = true
+                ruleStr.substring(5).trim { it <= ' ' }
+            }
+            ruleStr.startsWith("css:", true) -> {
+                isCss = true
+                ruleStr.substring(4).trim { it <= ' ' }
+            }
+            else -> ruleStr
         }
     }
 
