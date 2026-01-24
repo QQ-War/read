@@ -907,27 +907,28 @@ open class ReadController : BaseController() {
 
 
     @Mapping("/pdfImage")
-    open fun pdfImage(ctx: Context, path: String?, page: Int?) = run {
+    open fun pdfImage(ctx: Context, path: String?, page: Int?, accessToken: String?) = run {
         if (path.isNullOrBlank() || page == null) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
         
-        // 尝试解码路径，防止 %2F 等字符导致找不到文件
+        // 尝试解码路径
         val decodedPath = kotlin.runCatching { java.net.URLDecoder.decode(path, "UTF-8") }.getOrDefault(path)
-        val file = File(decodedPath)
+        logger.info("请求PDF图片: $decodedPath, 页码: $page")
         
+        val file = File(decodedPath)
         if (!file.exists()) {
-            logger.error("PDF文件不存在: $decodedPath")
+            logger.error("PDF文件不存在 (绝对路径): ${file.absolutePath}")
             throw DataThrowable().data(JsonResponse(false, "文件不存在: $decodedPath"))
         }
 
         runCatching {
             Loader.loadPDF(file).use { document ->
                 val renderer = PDFRenderer(document)
-                val image = renderer.renderImageWithDPI(page, 200f) // 降到 200 DPI
+                val image = renderer.renderImageWithDPI(page, 200f)
                 ctx.contentType("image/png")
                 javax.imageio.ImageIO.write(image, "PNG", ctx.outputStream())
             }
         }.onFailure {
-            logger.error("PDF渲染失败: $decodedPath, page: $page", it)
+            logger.error("PDF渲染失败: $decodedPath", it)
             throw DataThrowable().data(JsonResponse(false, "渲染失败: ${it.message}"))
         }
     }

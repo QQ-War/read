@@ -45,7 +45,8 @@ object PdfFile {
 
             if (text.isNullOrBlank()) {
                 // 如果没有文字，返回图片模式
-                val encodedPath = java.net.URLEncoder.encode(book.bookUrl, "UTF-8")
+                val absolutePath = File(book.bookUrl).absolutePath
+                val encodedPath = java.net.URLEncoder.encode(absolutePath, "UTF-8").replace("+", "%20")
                 return "<img src=\"@@baseUrl@@/pdfImage?path=$encodedPath&page=$pageNum\" style=\"width:100%\" />"
             }
             return text
