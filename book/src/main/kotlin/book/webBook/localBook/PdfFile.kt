@@ -41,7 +41,13 @@ object PdfFile {
             val pageNum = chapter.start?.toInt() ?: 0
             stripper.startPage = pageNum + 1
             stripper.endPage = pageNum + 1
-            return stripper.getText(document)
+            val text = stripper.getText(document)
+
+            if (text.isNullOrBlank()) {
+                // 如果没有文字，返回图片模式
+                return "<img src=\"@@baseUrl@@/pdfImage?path=${book.bookUrl}&page=$pageNum\" style=\"width:100%\" />"
+            }
+            return text
         }
     }
 }

@@ -84,6 +84,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
 
     implementation("org.bouncycastle:bcpkix-jdk18on:1.80")
+    implementation("org.apache.pdfbox:pdfbox:3.0.3")
 
 
     // 网络

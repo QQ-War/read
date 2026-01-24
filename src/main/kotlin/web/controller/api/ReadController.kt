@@ -37,7 +37,10 @@ import web.util.read.BookContent
 import web.util.read.BookInfo
 import web.util.read.getlist
 import web.util.svg.svg2PNG
+import org.apache.pdfbox.Loader
+import org.apache.pdfbox.rendering.PDFRenderer
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
@@ -214,8 +217,10 @@ open class ReadController : BaseController() {
                 }
                 val book = Book.initLocalBook(url, url, "")
                 LocalBook.getContent(book, chapterlist[index ?: 0]).toString().let {
-                    setBookContentbycache(url, it, index ?: 0,user.id!!)
-                    it
+                    val baseUrl = Context.current().url().substringBefore("/api")
+                    val processedTxt = it.replace("@@baseUrl@@", baseUrl)
+                    setBookContentbycache(url, processedTxt, index ?: 0,user.id!!)
+                    processedTxt
                 }
             }
 
@@ -888,6 +893,26 @@ open class ReadController : BaseController() {
                 logger.info("GET请求失败: $responseCode for $finalUrl")
                 JsonResponse(isSuccess = false,errorMsg ="GET请求失败")
             }
+        }
+    }
+
+
+    @Mapping("/pdfImage")
+    open fun pdfImage(ctx: Context, path: String?, page: Int?) = run {
+        if (path.isNullOrBlank() || page == null) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
+        val file = File(path)
+        if (!file.exists()) throw DataThrowable().data(JsonResponse(false, "文件不存在"))
+
+        runCatching {
+            Loader.loadPDF(file).use { document ->
+                val renderer = PDFRenderer(document)
+                val image = renderer.renderImageWithDPI(page, 300f) // 300 DPI 保证清晰度
+                ctx.contentType("image/png")
+                javax.imageio.ImageIO.write(image, "PNG", ctx.outputStream())
+            }
+        }.onFailure {
+            logger.error("PDF渲染失败", it)
+            throw DataThrowable().data(JsonResponse(false, "渲染失败: ${it.message}"))
         }
     }
 
