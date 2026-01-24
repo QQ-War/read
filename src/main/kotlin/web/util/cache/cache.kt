@@ -2,6 +2,7 @@ package web.util.cache
 
 
 
+import book.appCtx
 import book.util.FileUtils
 import java.io.File
 
@@ -14,7 +15,7 @@ private  const val localpath="local"
 private const val cookiepath="cookie"
 
 fun getlocalpath(name: String): String {
-    return "$localpath/$name"
+    return File(appCtx.externalFiles, "$localpath/$name").path
 }
 
 
@@ -47,4 +48,3 @@ fun checkfile(path:String){
         }
     }
 }
-

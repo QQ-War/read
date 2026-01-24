@@ -914,7 +914,18 @@ open class ReadController : BaseController() {
         val decodedPath = kotlin.runCatching { java.net.URLDecoder.decode(path, "UTF-8") }.getOrDefault(path)
         logger.info("请求PDF图片: $decodedPath, 页码: $page")
         
-        val file = File(decodedPath)
+        var file = File(decodedPath)
+        if (!file.exists()) {
+            val marker = "/local/"
+            val idx = decodedPath.indexOf(marker)
+            if (idx >= 0) {
+                val rel = decodedPath.substring(idx + marker.length)
+                val alt = File(appCtx.externalFiles, "local/$rel")
+                if (alt.exists()) {
+                    file = alt
+                }
+            }
+        }
         if (!file.exists()) {
             logger.error("PDF文件不存在 (绝对路径): ${file.absolutePath}")
             throw DataThrowable().data(JsonResponse(false, "文件不存在: $decodedPath"))
