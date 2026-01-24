@@ -217,10 +217,8 @@ open class ReadController : BaseController() {
                 }
                 val book = Book.initLocalBook(url, url, "")
                 LocalBook.getContent(book, chapterlist[index ?: 0]).toString().let {
-                    val baseUrl = Context.current().url().substringBefore("/api")
-                    val processedTxt = it.replace("@@baseUrl@@", "$baseUrl/api/$apiversion")
-                    setBookContentbycache(url, processedTxt, index ?: 0,user.id!!)
-                    processedTxt
+                    setBookContentbycache(url, it, index ?: 0,user.id!!)
+                    it
                 }
             }
 
@@ -239,7 +237,10 @@ open class ReadController : BaseController() {
     ) = runBlocking {
         if (url == null) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
         val user = getuserbytocken(accessToken)
-        JsonResponse(true).Data(getBookContent(accessToken,bookSourceUrl,url,index,type,user))
+        val content = getBookContent(accessToken,bookSourceUrl,url,index,type,user)
+        val baseUrl = Context.current().url().substringBefore("/api")
+        val processedContent = content.replace("@@baseUrl@@", "$baseUrl/api/v$apiversion")
+        JsonResponse(true).Data(processedContent)
     }
 
     @Mapping("/getBookContentNew")
@@ -287,7 +288,9 @@ open class ReadController : BaseController() {
             }
             logger.info("生效${effectiveReplaceRules.size}条规则")
         }
-        JsonResponse(true).Data(mapOf("rules" to effectiveReplaceRules,"text" to re))
+        val baseUrl = Context.current().url().substringBefore("/api")
+        val processedRe = re.replace("@@baseUrl@@", "$baseUrl/api/v$apiversion")
+        JsonResponse(true).Data(mapOf("rules" to effectiveReplaceRules,"text" to processedRe))
     }
 
     @Mapping("/getChapterListNew")
