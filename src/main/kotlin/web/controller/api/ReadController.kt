@@ -233,19 +233,22 @@ open class ReadController : BaseController() {
 
     @Mapping("/getBookContent")
     fun getBookContent(
-        accessToken: String?, bookSourceUrl: String?, url: String?, index: Int?, type: Int?
+        ctx: Context, accessToken: String?, bookSourceUrl: String?, url: String?, index: Int?, type: Int?
     ) = runBlocking {
         if (url == null) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
         val user = getuserbytocken(accessToken)
         val content = getBookContent(accessToken,bookSourceUrl,url,index,type,user)
-        val baseUrl = Context.current().url().substringBefore("/api")
+        val baseUrl = ctx.url().substringBefore("/api")
         val processedContent = content.replace("@@baseUrl@@", "$baseUrl/api/v$apiversion")
+        if (processedContent.contains("pdfImage")) {
+            logger.info("PDF图片模式输出内容: $processedContent")
+        }
         JsonResponse(true).Data(processedContent)
     }
 
     @Mapping("/getBookContentNew")
     fun getBookContentNew(
-        accessToken: String?, bookSourceUrl: String?, url: String?, index: Int?, type: Int?, bookname: String?,useReplaceRule:Int?
+        ctx: Context, accessToken: String?, bookSourceUrl: String?, url: String?, index: Int?, type: Int?, bookname: String?,useReplaceRule:Int?
     ) = runBlocking {
         if (url == null) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
         val user = getuserbytocken(accessToken)
@@ -288,8 +291,11 @@ open class ReadController : BaseController() {
             }
             logger.info("生效${effectiveReplaceRules.size}条规则")
         }
-        val baseUrl = Context.current().url().substringBefore("/api")
+        val baseUrl = ctx.url().substringBefore("/api")
         val processedRe = re.replace("@@baseUrl@@", "$baseUrl/api/v$apiversion")
+        if (processedRe.contains("pdfImage")) {
+            logger.info("PDF图片模式(New)输出内容: $processedRe")
+        }
         JsonResponse(true).Data(mapOf("rules" to effectiveReplaceRules,"text" to processedRe))
     }
 
@@ -903,18 +909,25 @@ open class ReadController : BaseController() {
     @Mapping("/pdfImage")
     open fun pdfImage(ctx: Context, path: String?, page: Int?) = run {
         if (path.isNullOrBlank() || page == null) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
-        val file = File(path)
-        if (!file.exists()) throw DataThrowable().data(JsonResponse(false, "文件不存在"))
+        
+        // 尝试解码路径，防止 %2F 等字符导致找不到文件
+        val decodedPath = kotlin.runCatching { java.net.URLDecoder.decode(path, "UTF-8") }.getOrDefault(path)
+        val file = File(decodedPath)
+        
+        if (!file.exists()) {
+            logger.error("PDF文件不存在: $decodedPath")
+            throw DataThrowable().data(JsonResponse(false, "文件不存在: $decodedPath"))
+        }
 
         runCatching {
             Loader.loadPDF(file).use { document ->
                 val renderer = PDFRenderer(document)
-                val image = renderer.renderImageWithDPI(page, 300f) // 300 DPI 保证清晰度
+                val image = renderer.renderImageWithDPI(page, 200f) // 降到 200 DPI
                 ctx.contentType("image/png")
                 javax.imageio.ImageIO.write(image, "PNG", ctx.outputStream())
             }
         }.onFailure {
-            logger.error("PDF渲染失败", it)
+            logger.error("PDF渲染失败: $decodedPath, page: $page", it)
             throw DataThrowable().data(JsonResponse(false, "渲染失败: ${it.message}"))
         }
     }
