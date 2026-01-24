@@ -218,7 +218,7 @@ open class ReadController : BaseController() {
                 val book = Book.initLocalBook(url, url, "")
                 LocalBook.getContent(book, chapterlist[index ?: 0]).toString().let {
                     val baseUrl = Context.current().url().substringBefore("/api")
-                    val processedTxt = it.replace("@@baseUrl@@", baseUrl)
+                    val processedTxt = it.replace("@@baseUrl@@", "$baseUrl/api/$apiversion")
                     setBookContentbycache(url, processedTxt, index ?: 0,user.id!!)
                     processedTxt
                 }
