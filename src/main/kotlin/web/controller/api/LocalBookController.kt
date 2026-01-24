@@ -40,8 +40,9 @@ open class LocalBookController:BaseController() {
         if(user.AllowUpTxt != true) {
             throw DataThrowable().data(JsonResponse(false,NOT_ALLOW_TXT))
         }
-        if(!file.name.endsWith(".txt") && !file.name.endsWith(".epub")){
-            throw DataThrowable().data(JsonResponse(false,NOT_TXT))
+        val supportedExtensions = listOf(".txt", ".epub", ".pdf", ".umd", ".cbz")
+        if (supportedExtensions.none { file.name.endsWith(it, true) }) {
+            throw DataThrowable().data(JsonResponse(false, NOT_TXT))
         }
         var f1=file.name
         kotlin.runCatching {

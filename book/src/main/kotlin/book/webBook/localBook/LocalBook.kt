@@ -43,6 +43,9 @@ object LocalBook {
             book.isCbz() -> {
                 CbzFile.getChapterList(book)
             }
+            book.isPdf() -> {
+                PdfFile.getChapterList(book)
+            }
             else -> {
                 TextFile.getChapterList(book)
             }
@@ -63,6 +66,9 @@ object LocalBook {
             }
             book.isCbz() -> {
                 CbzFile.getContent(book, chapter)
+            }
+            book.isPdf() -> {
+                PdfFile.getContent(book, chapter)
             }
             else -> {
                 TextFile.getContent(book, chapter)
@@ -95,7 +101,7 @@ object LocalBook {
     fun deleteBook(book: Book) {
         kotlin.runCatching {
             var bookFile = book.getLocalFile();
-            if (book.isLocalTxt() || book.isUmd()) {
+            if (book.isLocalTxt() || book.isUmd() || book.isPdf()) {
                 if (bookFile.exists()) {
                     bookFile.delete()
                 }

@@ -114,8 +114,9 @@ open class LocalBookController {
         if(!file.exists()){
             throw DataThrowable().data(JsonResponse(false, "文件夹不存在"))
         }
-        if(!file.name.endsWith(".txt") && !file.name.endsWith(".epub")){
-            throw DataThrowable().data(JsonResponse(false,NOT_TXT))
+        val supportedExtensions = listOf(".txt", ".epub", ".pdf", ".umd", ".cbz")
+        if (supportedExtensions.none { file.name.endsWith(it, true) }) {
+            throw DataThrowable().data(JsonResponse(false, NOT_TXT))
         }
         val book = Book.initLocalBook(file.path, file.path, "")
         JsonResponse(true).Data(book)
@@ -133,8 +134,9 @@ open class LocalBookController {
         if(!file.exists()){
             throw DataThrowable().data(JsonResponse(false, "文件夹不存在"))
         }
-        if(!file.name.endsWith(".txt") && !file.name.endsWith(".epub")){
-            throw DataThrowable().data(JsonResponse(false,NOT_TXT))
+        val supportedExtensions = listOf(".txt", ".epub", ".pdf", ".umd", ".cbz")
+        if (supportedExtensions.none { file.name.endsWith(it, true) }) {
+            throw DataThrowable().data(JsonResponse(false, NOT_TXT))
         }
         val book = Book.initLocalBook(file.path, file.path, "")
         val chapters = LocalBook.getChapterList(book)
@@ -153,8 +155,9 @@ open class LocalBookController {
         if(!file.exists()){
             throw DataThrowable().data(JsonResponse(false, "文件夹不存在"))
         }
-        if(!file.name.endsWith(".txt") && !file.name.endsWith(".epub")){
-            throw DataThrowable().data(JsonResponse(false,NOT_TXT))
+        val supportedExtensions = listOf(".txt", ".epub", ".pdf", ".umd", ".cbz")
+        if (supportedExtensions.none { file.name.endsWith(it, true) }) {
+            throw DataThrowable().data(JsonResponse(false, NOT_TXT))
         }
         val book = Book.initLocalBook(file.path, file.path, "")
         val chapters = LocalBook.getChapterList(book)
@@ -172,7 +175,8 @@ open class LocalBookController {
             if(it.isDirectory && it.name != file.name){
                 books.putAll(getname(it))
             }else{
-                if(it.name.endsWith(".txt") || it.name.endsWith(".epub")){
+                val supportedExtensions = listOf(".txt", ".epub", ".pdf", ".umd", ".cbz")
+                if (supportedExtensions.any { ext -> it.name.endsWith(ext, true) }) {
                     books[it.nameWithoutExtension] = it.path
                 }
             }

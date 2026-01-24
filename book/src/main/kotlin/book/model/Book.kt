@@ -102,6 +102,10 @@ data class Book(
         return originName.endsWith(".umd", true)
     }
 
+    fun isPdf(): Boolean {
+        return originName.endsWith(".pdf", true)
+    }
+
     fun isOnLineTxt(): Boolean {
         return !isLocalBook() && type == 0
     }

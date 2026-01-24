@@ -45,6 +45,7 @@ dependencies {
     implementation(files("src/lib/xmlpull-1.1.3.1.jar"))
     implementation("org.apache.commons:commons-text:1.13.0")
     implementation("com.github.liuyueyi:quick-transfer-core:0.2.16")
+    implementation("org.apache.pdfbox:pdfbox:3.0.3")
     testImplementation(kotlin("test"))
 }
 sourceSets {
