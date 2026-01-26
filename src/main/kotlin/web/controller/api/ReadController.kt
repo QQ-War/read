@@ -515,6 +515,10 @@ open class ReadController : BaseController() {
             if (it.durChapterPos == null) {
                 it.durChapterPos = 0.0
             }
+            if (it.coverUrl.isNullOrBlank() && !it.bookUrl.isNullOrBlank() && it.bookUrl!!.lowercase().endsWith(".pdf")) {
+                val encodedPath = java.net.URLEncoder.encode(it.bookUrl, "UTF-8").replace("+", "%20")
+                it.coverUrl = "/api/v$apiversion/pdfImage?path=$encodedPath&page=0"
+            }
         }
        JsonResponse(true,if (appversion ==version) "ok" else appversion).Data(book)
     }
