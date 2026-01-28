@@ -216,7 +216,14 @@ open class ReadController : BaseController() {
                     }
                 }
                 val book = Book.initLocalBook(url, url, "")
-                LocalBook.getContent(book, chapterlist[index ?: 0]).toString().let {
+                val content = LocalBook.getContent(book, chapterlist[index ?: 0]).toString()
+                if (content.contains("pdfImage")) {
+                    val booklist = booklistMapper.getbook(user.id!!, url)
+                    if (booklist != null && booklist.type != 2) {
+                        booklistMapper.changetype(booklist.id!!, 2)
+                    }
+                }
+                content.let {
                     setBookContentbycache(url, it, index ?: 0,user.id!!)
                     it
                 }
