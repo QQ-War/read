@@ -854,6 +854,34 @@ open class ReadController : BaseController() {
         
         val normalizedUrl = normalizeImageUrl(url)
         logger.info("proxypng normalized: $normalizedUrl")
+
+        if (normalizedUrl.startsWith("/assets/")) {
+            val storageRoot = File("storage").canonicalFile
+            val localFile = File("storage${normalizedUrl}").canonicalFile
+            if (!localFile.path.startsWith(storageRoot.path)) {
+                throw DataThrowable().data(JsonResponse(false, NOT_BANK))
+            }
+            if (localFile.exists() && localFile.isFile) {
+                val ext = localFile.extension.lowercase()
+                val contentType = when (ext) {
+                    "jpg", "jpeg" -> "image/jpeg"
+                    "png" -> "image/png"
+                    "webp" -> "image/webp"
+                    "gif" -> "image/gif"
+                    else -> "application/octet-stream"
+                }
+                ctx.contentType(contentType)
+                localFile.inputStream().use { i ->
+                    val b = ByteArray(4096)
+                    var len: Int
+                    while ((i.read(b).also { len = it }) != -1) {
+                        ctx.outputStream().write(b, 0, len)
+                    }
+                }
+                ctx.flush()
+                return@run
+            }
+        }
         
         val sign = normalizedUrl.md5()
         val valueFile = FileUtils.getFile(pngDir,sign)
