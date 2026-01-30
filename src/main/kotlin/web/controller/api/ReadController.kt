@@ -451,7 +451,7 @@ open class ReadController : BaseController() {
             
             // 6. 返回 ZIP 文件
             ctx.contentType("application/zip")
-            ctx.header("Content-Disposition", "attachment; filename=\"chapter_${index}.zip\"")
+            ctx.headerSet("Content-Disposition", "attachment; filename=\"chapter_${index}.zip\"")
             zipFile.inputStream().use { input ->
                 input.copyTo(ctx.outputStream())
             }
