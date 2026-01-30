@@ -13,7 +13,15 @@ import book.webBook.exception.RegexTimeoutException
 import book.webBook.localBook.LocalBook
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import java.util.Collections
 import org.noear.solon.annotation.*
 import org.noear.solon.core.handle.Context
 import org.noear.solon.core.util.DataThrowable
@@ -448,9 +456,9 @@ open class ReadController : BaseController() {
                 input.copyTo(ctx.outputStream())
             }
         } finally {
-            // 延迟清理临时文件，确保流传输完成
-            launch(Dispatchers.IO) {
-                delay(60000) // 延长至 60 秒更安全
+            // 延迟清理临时文件，确保流传输完成（避免阻塞当前请求）
+            CoroutineScope(Dispatchers.IO).launch {
+                delay(60000)
                 tempDir.deleteRecursively()
             }
         }
