@@ -510,6 +510,15 @@ open class ReadController : BaseController() {
                 else -> null
             }
         }
+
+        val user = runCatching { getuserbytocken(accessToken) }.getOrNull()
+        val userKey = user?.id?.toString() ?: "guest"
+        // 直接外部 URL 缓存（带用户维度）
+        val sign = "direct_${userKey}_${resolvedImgUrl.md5()}"
+        val valueFile = File(pngDir, sign)
+        if (valueFile.exists()) {
+            return valueFile.readBytes()
+        }
         
         return runCatching {
             val url = URL(resolvedImgUrl)
@@ -526,7 +535,11 @@ open class ReadController : BaseController() {
             connection.connectTimeout = 10000
             connection.readTimeout = 15000
             if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                connection.inputStream.readBytes()
+                val data = connection.inputStream.readBytes()
+                if (data.isNotEmpty()) {
+                    valueFile.writeBytes(data)
+                }
+                data
             } else null
         }.getOrNull()
     }
@@ -544,6 +557,12 @@ open class ReadController : BaseController() {
         if (url.isNullOrBlank()) return null
         val (user, source) = getsourceuser(accessToken, bookSourceUrl)
         if (user.AllowImg != true) return null
+
+        val sign = "decode_${user.id}_${(bookSourceUrl ?: "").md5()}_${url.md5()}"
+        val valueFile = File(pngDir, sign)
+        if (valueFile.exists()) {
+            return valueFile.readBytes()
+        }
         
         val geturl = URI(url).toURL()
         SslUtils.ignoreSsl()
@@ -560,15 +579,22 @@ open class ReadController : BaseController() {
             val s = BookSource.fromJson(source.json).getOrNull() ?: return null
             s.usertocken = accessToken
             s.userid = user.id
-            return if (s.hasimageDecode()) {
+            val data = if (s.hasimageDecode()) {
                 var book: Book? = null
                 if (!ibook.isNullOrBlank()) {
                     runCatching { book = GSON.fromJson(ibook, Book::class.java) }
                 }
-                runCatching { s.DeimageDecode(src = url, inputStream = connection.inputStream, book = book) }.getOrNull()
+                runCatching { s.DeimageDecode(src = url, inputStream = connection.inputStream, book = book) }.getOrElse {
+                    connection.inputStream.readBytes()
+                }
             } else {
                 connection.inputStream.readBytes()
             }
+
+            if (data != null && data.isNotEmpty()) {
+                valueFile.writeBytes(data)
+            }
+            return data
         }
         return null
     }
@@ -886,75 +912,28 @@ open class ReadController : BaseController() {
 
     @Mapping("/imageDecode")
     open fun imageDecode(ctx: Context, accessToken: String?, bookSourceUrl: String?, @Param("book")  ibook: String?, url: String?, header: String?) = runBlocking {
-        logger.info("imageDecode:$url")
-        val (user,source)=getsourceuser(accessToken,bookSourceUrl)
-        if(user.AllowImg != true){
-            App.toast("没有权限进行图片解密",accessToken?:"")
-            throw DataThrowable().data(JsonResponse(false, CAN_NOT))
-        }
-        if (url.isNullOrBlank()) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
-        val geturl = URI(url).toURL()
-        SslUtils.ignoreSsl()
-        val connection = geturl.openConnection() as HttpURLConnection
-        connection.requestMethod = "GET"
-        runCatching {
-            val json= Gson().fromJson<Map<String, String>>(header, Map::class.java)
-            json.forEach{(k,v)->
-                connection.setRequestProperty(k,v)
-            }
-        }
-        connection.connectTimeout = 20*1000
-        connection.readTimeout = 20*1000
-        val responseCode = connection.responseCode
-        //  读取响应
-        if (responseCode == HttpURLConnection.HTTP_OK) { // 200表示请求成功
-            ctx.contentType(connection.getHeaderField("Content-Type"))
-            val s= BookSource.fromJson(source.json).getOrNull()!!
-            s.usertocken=accessToken
-            s.userid=user.id
-            if(s.hasimageDecode()){
-                s.userid = user.id
-                s.usertocken = accessToken
-                var book:Book?=null
-                if(!ibook.isNullOrBlank()){
-                   runCatching { book= GSON.fromJson(ibook, Book::class.java) }.onFailure {
-                       App.log("格式化book失败:${it.message}",accessToken!!)
-                   }
-                }
-               runCatching {
-                    val bytes = s.DeimageDecode(src = url, inputStream = connection.inputStream,book=book)
-                    ctx.outputStream().write(bytes)
-                    ctx.flush()
-                }.onFailure {
-                    it.printStackTrace()
-                    App.log("图片解密失败:${it.message}",accessToken!!)
-                    runCatching {
-                        connection.inputStream.use { i->
-                            val b = ByteArray(4096)
-                            var len: Int
-                            while ((i.read(b).also { it -> len = it }) != -1) {
-                                ctx.outputStream().write(b, 0, len)
-                            }
-                        }
-                    }.onFailure {
-                        JsonResponse(isSuccess = false,errorMsg ="解密失败")
-                    }
+        logger.info("imageDecode: $url")
+        val bytes = fetchImageDecodeInternal(accessToken, bookSourceUrl, ibook, url, header)
+        
+        if (bytes != null && bytes.isNotEmpty()) {
+            if (bytes.size > 4) {
+                val hex = bytes.sliceArray(0..3).joinToString("") { "%02x".format(it) }
+                when {
+                    hex.startsWith("89504e47") -> ctx.contentType("image/png")
+                    hex.startsWith("ffd8ff") -> ctx.contentType("image/jpeg")
+                    hex.startsWith("47494638") -> ctx.contentType("image/gif")
+                    hex.startsWith("52494646") -> ctx.contentType("image/webp")
+                    else -> ctx.contentType("application/octet-stream")
                 }
             } else {
-                connection.inputStream.use { i->
-                    val b = ByteArray(4096)
-                    var len: Int
-                    while ((i.read(b).also { len = it }) != -1) {
-                        ctx.outputStream().write(b, 0, len)
-                    }
-                }
+                ctx.contentType("application/octet-stream")
             }
-
+            ctx.outputStream().write(bytes)
+            ctx.flush()
         } else {
-            logger.info("GET请求失败")
-            JsonResponse(isSuccess = false,errorMsg ="GET请求失败")
+            logger.info("imageDecode 失败")
+            throw DataThrowable().data(JsonResponse(false, "图片加载或解密失败"))
         }
-
     }
 
     @Mapping("/getLoginInfo")
