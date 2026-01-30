@@ -382,6 +382,254 @@ open class ReadController : BaseController() {
         JsonResponse(true)
     }
 
+    @Mapping("/chapterPackage")
+    open fun chapterPackage(ctx: Context, accessToken: String?, bookSourceUrl: String?, url: String?, index: Int?, type: Int?) = runBlocking {
+        if (url == null || index == null) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
+        val user = getuserbytocken(accessToken)
+        
+        logger.info("开始打包章节图片: book=$url, index=$index")
+        
+        // 1. 获取章节内容
+        val content = getBookContent(accessToken, bookSourceUrl, url, index, type, user)
+        
+        // 2. 提取图片 URL (严格按优先级提取)
+        val imageUrls = extractImageUrlsByPriority(content)
+        
+        if (imageUrls.isEmpty()) {
+            logger.warn("该章节未发现图片内容")
+            throw DataThrowable().data(JsonResponse(false, "No images found in this chapter"))
+        }
+
+        // 3. 准备临时目录
+        val timestamp = System.currentTimeMillis()
+        val tempDir = File(appCtx.externalFiles, "temp/package/$timestamp")
+        tempDir.mkdirs()
+        
+        val baseUrl = ctx.url().substringBefore("/api")
+        val apiBase = "$baseUrl/api/v$apiversion"
+        
+        val files = Collections.synchronizedList(mutableListOf<File>())
+        
+        try {
+            // 4. 并发下载图片 (限制最大并发数为 5)
+            val dispatcher = Dispatchers.IO.limitedParallelism(5)
+            withContext(dispatcher) {
+                imageUrls.mapIndexed { i, imgUrl ->
+                    async {
+                        val fileName = String.format("%03d.png", i + 1)
+                        val file = File(tempDir, fileName)
+                        
+                        runCatching {
+                            val imageData = fetchImageDataInternal(ctx, accessToken, bookSourceUrl, imgUrl, apiBase)
+                            if (imageData != null && imageData.isNotEmpty()) {
+                                file.writeBytes(imageData)
+                                files.add(file)
+                            }
+                        }.onFailure {
+                            logger.error("图片下载失败 ($i): $imgUrl - ${it.message}")
+                        }
+                    }
+                }.awaitAll()
+            }
+            
+            if (files.isEmpty()) {
+                throw DataThrowable().data(JsonResponse(false, "Failed to download any images"))
+            }
+            
+            // 5. 打包 ZIP
+            val zipFile = File(tempDir, "chapter_${index}_${timestamp}.zip")
+            files.sortBy { it.name } 
+            book.util.ZipUtils.zipFiles(files, zipFile)
+            
+            // 6. 返回 ZIP 文件
+            ctx.contentType("application/zip")
+            ctx.header("Content-Disposition", "attachment; filename=\"chapter_${index}.zip\"")
+            zipFile.inputStream().use { input ->
+                input.copyTo(ctx.outputStream())
+            }
+        } finally {
+            // 延迟清理临时文件，确保流传输完成
+            launch(Dispatchers.IO) {
+                delay(60000) // 延长至 60 秒更安全
+                tempDir.deleteRecursively()
+            }
+        }
+    }
+
+    private fun extractImageUrlsByPriority(content: String): List<String> {
+        val imgTags = """<img[^>]+>""".toRegex(RegexOption.IGNORE_CASE).findAll(content)
+        return imgTags.map { tagMatch ->
+            val tag = tagMatch.value
+            // 优先级: data-src > src > data-original
+            extractAttr(tag, "data-src") 
+                ?: extractAttr(tag, "src") 
+                ?: extractAttr(tag, "data-original")
+        }.filterNotNull().distinct().toList()
+    }
+
+    private fun extractAttr(tag: String, attr: String): String? {
+        val regex = """$attr\s*=\s*['"]([^'"]+)['"]""".toRegex(RegexOption.IGNORE_CASE)
+        return regex.find(tag)?.groupValues?.get(1)
+    }
+
+    private suspend fun fetchImageDataInternal(ctx: Context, accessToken: String?, bookSourceUrl: String?, imgUrl: String, apiBase: String): ByteArray? {
+        val resolvedImgUrl = imgUrl.replace("@@baseUrl@@", apiBase)
+        
+        // 安全边界：严格校验 http:// 或 https://
+        if (!resolvedImgUrl.startsWith("http://", ignoreCase = true) && 
+            !resolvedImgUrl.startsWith("https://", ignoreCase = true) && 
+            !resolvedImgUrl.startsWith("/")) {
+             return null
+        }
+
+        if (resolvedImgUrl.startsWith(apiBase)) {
+            val uri = URI(resolvedImgUrl)
+            val queryParams = uri.query?.split("&")?.associate {
+                val parts = it.split("=", limit = 2)
+                parts[0] to (if (parts.size > 1) java.net.URLDecoder.decode(parts[1], "UTF-8") else "")
+            } ?: emptyMap()
+
+            return when {
+                uri.path.contains("/imageDecode") -> {
+                    fetchImageDecodeInternal(accessToken, bookSourceUrl, queryParams["book"], queryParams["url"], queryParams["header"])
+                }
+                uri.path.contains("/proxypng") -> {
+                    fetchProxyPngInternal(queryParams["url"])
+                }
+                uri.path.contains("/pdfImage") -> {
+                    fetchPdfImageInternal(queryParams["path"], queryParams["page"]?.toIntOrNull())
+                }
+                else -> null
+            }
+        }
+        
+        return runCatching {
+            val url = URL(resolvedImgUrl)
+            
+            // SSRF 防御: 过滤内网 IP
+            if (isInternalAddress(url.host)) {
+                logger.warn("阻止内网访问: ${url.host}")
+                return null
+            }
+
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1")
+            connection.connectTimeout = 10000
+            connection.readTimeout = 15000
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                connection.inputStream.readBytes()
+            } else null
+        }.getOrNull()
+    }
+
+    private fun isInternalAddress(host: String): Boolean {
+        return try {
+            val addr = java.net.InetAddress.getByName(host)
+            addr.isSiteLocalAddress || addr.isLoopbackAddress || addr.isLinkLocalAddress
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private suspend fun fetchImageDecodeInternal(accessToken: String?, bookSourceUrl: String?, ibook: String?, url: String?, header: String?): ByteArray? {
+        if (url.isNullOrBlank()) return null
+        val (user, source) = getsourceuser(accessToken, bookSourceUrl)
+        if (user.AllowImg != true) return null
+        
+        val geturl = URI(url).toURL()
+        SslUtils.ignoreSsl()
+        val connection = geturl.openConnection() as HttpURLConnection
+        connection.requestMethod = "GET"
+        runCatching {
+            val json = Gson().fromJson<Map<String, String>>(header, Map::class.java)
+            json.forEach { (k, v) -> connection.setRequestProperty(k, v) }
+        }
+        connection.connectTimeout = 20 * 1000
+        connection.readTimeout = 20 * 1000
+        
+        if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+            val s = BookSource.fromJson(source.json).getOrNull() ?: return null
+            s.usertocken = accessToken
+            s.userid = user.id
+            return if (s.hasimageDecode()) {
+                var book: Book? = null
+                if (!ibook.isNullOrBlank()) {
+                    runCatching { book = GSON.fromJson(ibook, Book::class.java) }
+                }
+                runCatching { s.DeimageDecode(src = url, inputStream = connection.inputStream, book = book) }.getOrNull()
+            } else {
+                connection.inputStream.readBytes()
+            }
+        }
+        return null
+    }
+
+    private fun fetchProxyPngInternal(url: String?): ByteArray? {
+        if (url.isNullOrBlank()) return null
+        val normalizedUrl = normalizeImageUrl(url)
+        val sign = normalizedUrl.md5()
+        val valueFile = FileUtils.getFile(pngDir, sign)
+        if (valueFile.exists()) {
+            return valueFile.readBytes()
+        }
+        
+        return runCatching {
+            val (nurl, headers) = geturlandheader(url)
+            val finalUrl = normalizeImageUrl(nurl)
+            val requestUrl = URL(finalUrl)
+            SslUtils.ignoreSsl()
+            val connection = requestUrl.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1")
+            headers.forEach { (k, v) -> connection.setRequestProperty(k, "$v") }
+            
+            val profile = MangaAntiScraping.resolveProfile(finalUrl)
+            profile?.let { p ->
+                p.referer?.let { connection.setRequestProperty("Referer", it) }
+                p.userAgent?.let { connection.setRequestProperty("User-Agent", it) }
+                p.extraHeaders.forEach { (k, v) -> connection.setRequestProperty(k, v) }
+            }
+            
+            if (connection.getRequestProperty("Referer") == null) {
+                requestUrl.host?.let { connection.setRequestProperty("Referer", "https://$it/") }
+            }
+
+            connection.connectTimeout = 15000
+            connection.readTimeout = 20000
+            
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val data = connection.inputStream.readBytes()
+                valueFile.writeBytes(data)
+                data
+            } else null
+        }.getOrNull()
+    }
+
+    private fun fetchPdfImageInternal(path: String?, page: Int?): ByteArray? {
+        if (path.isNullOrBlank() || page == null) return null
+        val decodedPath = kotlin.runCatching { java.net.URLDecoder.decode(path, "UTF-8") }.getOrDefault(path)
+        var file = File(decodedPath)
+        if (!file.exists()) {
+            val idx = decodedPath.indexOf("/local/")
+            if (idx >= 0) {
+                val alt = File(appCtx.externalFiles, "local/${decodedPath.substring(idx + 7)}")
+                if (alt.exists()) file = alt
+            }
+        }
+        if (!file.exists()) return null
+
+        return runCatching {
+            Loader.loadPDF(file).use { document ->
+                val renderer = PDFRenderer(document)
+                val image = renderer.renderImageWithDPI(page, 200f)
+                val bos = ByteArrayOutputStream()
+                javax.imageio.ImageIO.write(image, "PNG", bos)
+                bos.toByteArray()
+            }
+        }.getOrNull()
+    }
+
 
     @Mapping("/saveBookProgress")
     open fun saveBookProgress(accessToken: String?, pos: Double?, url: String?, title: String?, index: Int?) = runBlocking {
