@@ -36,6 +36,7 @@ import web.util.hash.md5
 import web.util.read.BookContent
 import web.util.read.BookInfo
 import web.util.read.getlist
+import web.util.read.MangaAntiScraping
 import web.util.svg.svg2PNG
 import org.apache.pdfbox.Loader
 import org.apache.pdfbox.rendering.PDFRenderer
@@ -844,6 +845,12 @@ open class ReadController : BaseController() {
         if (cleanUrl.contains("bzmh.net")) {
             cleanUrl = cleanUrl.replace("bzmh.net", "bzcdn.net")
         }
+        if (cleanUrl.contains("godamanga.com")) {
+            cleanUrl = cleanUrl.replace("godamanga.com", "cncover.godamanga.online")
+        }
+        if (cleanUrl.contains("g-mh.org")) {
+            cleanUrl = cleanUrl.replace("g-mh.org", "cncover.godamanga.online")
+        }
         
         return cleanUrl.trim()
     }
@@ -912,6 +919,16 @@ open class ReadController : BaseController() {
 
             headers.forEach{(k,v)->
                 connection.setRequestProperty(k,"$v");
+            }
+            
+            // 应用站点特定的反爬规则（优先级高于书源 headers）
+            val profile = MangaAntiScraping.resolveProfile(finalUrl)
+            profile?.let { p ->
+                p.referer?.let { connection.setRequestProperty("Referer", it) }
+                p.userAgent?.let { connection.setRequestProperty("User-Agent", it) }
+                p.extraHeaders.forEach { (k, v) ->
+                    connection.setRequestProperty(k, v)
+                }
             }
             
             if (connection.getRequestProperty("Referer") == null) {
