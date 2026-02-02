@@ -199,11 +199,11 @@ class EpubFile(var book: Book) {
         }
         elements.select("img").forEach{
            if(it.attr("src").contains("cover")){
-               var url=book.coverUrl?:""
-               if(!url.startsWith("http") && !url.startsWith("https")){
-                   url="http/$url"
+               var url = book.coverUrl ?: ""
+               if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                   url = if (url.startsWith("/")) url else "/$url"
                }
-               it.attr("src",url)
+               it.attr("src", url)
            }else{
                val data=epubBook!!.resources.resourceMap[it.attr("src")]?.data
                if(data != null){
@@ -214,10 +214,7 @@ class EpubFile(var book: Book) {
                    if (!File(coverUrl).exists()) {
                        FileUtils.writeBytes(coverUrl,data)
                    }
-                   if(!url.startsWith("http") && !url.startsWith("https")){
-                       url="http/$url"
-                   }
-                   it.attr("src",url)
+                   it.attr("src", url)
                }
 
            }

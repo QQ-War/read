@@ -93,7 +93,7 @@ open class LocalBookController:BaseController() {
         val f1="${Md5(fb)}.png"
         val valueFile = FileUtils.createFileIfNotExist(imagesDir,f1)
         valueFile.writeBytes(fb)
-        JsonResponse(true).Data("http//assets/images/"+f1)
+        JsonResponse(true).Data("/assets/images/"+f1)
     }
 
 }
