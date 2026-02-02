@@ -8,6 +8,10 @@ on:
       - 'v*' # 触发条件：推送 v 开头的标签，如 v3.3.5
   workflow_dispatch: # 支持手动触发构建
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
