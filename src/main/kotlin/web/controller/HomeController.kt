@@ -74,6 +74,11 @@ open class HomeController {
         ctx.redirect("/new/index.html")
     }
 
+    @Mapping("/new/**")
+    fun newFallback(ctx: Context) = run {
+        ctx.redirect("/new/index.html")
+    }
+
     @Mapping("/forget")
     fun forget() = run {
         ModelAndView("qread/forget.html")
