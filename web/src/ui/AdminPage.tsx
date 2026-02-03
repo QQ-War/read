@@ -55,6 +55,20 @@ const AdminPage = () => {
   const [codes, setCodes] = useState<any[]>([]);
   const [codeQuery, setCodeQuery] = useState('');
   const [codeNum, setCodeNum] = useState('1');
+  const parseJsonEditor = (text: string): { ok: true; json: string } | { ok: false; error: string } => {
+    if (!text.trim()) {
+      return { ok: false, error: '内容为空' };
+    }
+    try {
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== 'object') {
+        return { ok: false, error: 'JSON 必须为对象或数组' };
+      }
+      return { ok: true, json: JSON.stringify(parsed, null, 2) };
+    } catch (error: any) {
+      return { ok: false, error: `JSON 解析失败：${error?.message || '格式错误'}` };
+    }
+  };
 
   const adminTabs = useMemo(
     () => [
@@ -137,6 +151,7 @@ const AdminPage = () => {
         />
         <button onClick={handleLogin}>登录</button>
         <button onClick={() => adminLogout()}>退出</button>
+        <span className="helper">仅管理员账号可操作管理功能。</span>
       </div>
 
       <div className="admin-tabs">
@@ -265,6 +280,10 @@ const AdminPage = () => {
             <div className="admin-toolbar">
               <button
                 onClick={async () => {
+                  if (!userForm.username.trim()) {
+                    setStatus('用户名不能为空');
+                    return;
+                  }
                   setStatus(editUser ? '保存中...' : '新增中...');
                   const resp = await adminAddUser(userForm);
                   setStatus(resp.isSuccess ? '' : resp.errorMsg || '保存失败');
@@ -280,6 +299,7 @@ const AdminPage = () => {
                 <button onClick={() => setEditUser(null)}>取消编辑</button>
               )}
             </div>
+            <div className="helper">密码留空将保持原有密码不变。</div>
           </div>
         </div>
       )}
@@ -315,8 +335,12 @@ const AdminPage = () => {
           />
           <button
             onClick={async () => {
-              if (!sourceEditor.trim()) return;
-              const file = new File([sourceEditor.trim()], 'source.json', { type: 'application/json' });
+              const parsed = parseJsonEditor(sourceEditor);
+              if (!parsed.ok) {
+                setStatus(parsed.error || 'JSON 解析失败');
+                return;
+              }
+              const file = new File([parsed.json], 'source.json', { type: 'application/json' });
               const resp = await adminUploadBookSource(file);
               setStatus(resp.isSuccess ? '' : resp.errorMsg || '保存失败');
               await loadSources();
@@ -324,6 +348,7 @@ const AdminPage = () => {
           >
             保存编辑
           </button>
+          <div className="helper">支持单条书源 JSON，保存前会自动格式化。</div>
           <div className="list">
             {sources.map((s) => (
               <div key={s.bookSourceUrl} className="row">
@@ -391,8 +416,12 @@ const AdminPage = () => {
           />
           <button
             onClick={async () => {
-              if (!rssEditor.trim()) return;
-              const file = new File([rssEditor.trim()], 'rss.json', { type: 'application/json' });
+              const parsed = parseJsonEditor(rssEditor);
+              if (!parsed.ok) {
+                setStatus(parsed.error || 'JSON 解析失败');
+                return;
+              }
+              const file = new File([parsed.json], 'rss.json', { type: 'application/json' });
               const resp = await adminUploadRssSource(file);
               setStatus(resp.isSuccess ? '' : resp.errorMsg || '保存失败');
               await loadRss();
@@ -400,6 +429,7 @@ const AdminPage = () => {
           >
             保存编辑
           </button>
+          <div className="helper">支持单条 RSS JSON，保存前会自动格式化。</div>
           <div className="list">
             {rssSources.map((s) => (
               <div key={s.sourceUrl} className="row">
@@ -451,6 +481,10 @@ const AdminPage = () => {
             <button
               onClick={async () => {
                 const num = Number(codeNum) || 1;
+                if (num <= 0) {
+                  setStatus('数量必须大于 0');
+                  return;
+                }
                 const resp = await adminAddCodes(num);
                 setStatus(resp.isSuccess ? '' : resp.errorMsg || '生成失败');
                 await loadCodes();
@@ -458,6 +492,7 @@ const AdminPage = () => {
             >
               生成注册码
             </button>
+            <span className="helper">建议一次生成 1-100 个。</span>
           </div>
           <div className="list">
             {codes.map((c) => (
