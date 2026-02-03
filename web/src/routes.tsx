@@ -9,20 +9,23 @@ import RssPage from './ui/RssPage';
 import TtsPage from './ui/TtsPage';
 import AdminPage from './ui/AdminPage';
 
-export const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <AppShell />,
-    children: [
-      { index: true, element: <Navigate to="/bookshelf" replace /> },
-      { path: 'login', element: <LoginPage /> },
-      { path: 'bookshelf', element: <BookshelfPage /> },
-      { path: 'search', element: <SearchPage /> },
-      { path: 'book', element: <BookPage /> },
-      { path: 'sources', element: <SourcesPage /> },
-      { path: 'rss', element: <RssPage /> },
-      { path: 'tts', element: <TtsPage /> },
-      { path: 'admin', element: <AdminPage /> },
-    ],
-  },
-]);
+export const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: <AppShell />,
+      children: [
+        { index: true, element: <Navigate to="/bookshelf" replace /> },
+        { path: 'login', element: <LoginPage /> },
+        { path: 'bookshelf', element: <BookshelfPage /> },
+        { path: 'search', element: <SearchPage /> },
+        { path: 'book', element: <BookPage /> },
+        { path: 'sources', element: <SourcesPage /> },
+        { path: 'rss', element: <RssPage /> },
+        { path: 'tts', element: <TtsPage /> },
+        { path: 'admin', element: <AdminPage /> },
+      ],
+    },
+  ],
+  { basename: '/new' }
+);
