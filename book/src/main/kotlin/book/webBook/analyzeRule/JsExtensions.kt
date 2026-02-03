@@ -50,7 +50,7 @@ interface JsExtensions: JsEncodeUtils  {
     fun getSource(): BaseSource?
 
     fun androidId(): String {
-        return getSource()?.userid?:""
+        return md5Encode(getSource()?.userid?:"")
     }
 
     fun binding(bindings: ScriptBindings){
@@ -288,6 +288,11 @@ interface JsExtensions: JsEncodeUtils  {
         return cookie?:""
     }
 
+
+
+
+
+
     fun startBrowserAwait(url: String,title: String, refetchAfterSuccess: Boolean): StrResponse = runBlocking {
         logger.info("跳转URL：$url")
 
@@ -316,7 +321,7 @@ interface JsExtensions: JsEncodeUtils  {
 
         val header= GSON.toJson(headerMap)
         logger.info("header:$header")
-        var re=App.startBrowserAwait(baseUrl,title,getSource()?.usertocken?:"",header)
+        var re=App.startBrowserAwait(baseUrl,title,getSource()?.usertocken?:"",header,getSource()?.getTag()?:"")
         if(refetchAfterSuccess){
             logger.info("重新加载网页:$url")
             re = AnalyzeUrl(

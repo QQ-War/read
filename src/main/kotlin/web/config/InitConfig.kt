@@ -34,13 +34,13 @@ class InitConfig {
     @Bean
     fun cookieinit() {
         checkfile()
-        App.startBrowserAwait=fun (urlStr: String, title: String, tocken:String, header:String):StrResponse = runBlocking{
+        App.startBrowserAwait=fun (urlStr: String, title: String, tocken:String, header:String,name: String):StrResponse = runBlocking{
             if(urlStr.isBlank())  return@runBlocking  StrResponse(urlStr,"")
             val socket=ApiWebSocket.get(tocken)
             if(socket!=null){
                 val id= UUID.randomUUID().toString()
                 logger.info("startBrowser ,url: $urlStr ,title: $title, tocken: $tocken ")
-                socket.send(Gson().toJson(WebMessage(msg = "startBrowser", url = urlStr,title=title,id=id, header = header )))
+                socket.send(Gson().toJson(WebMessage(msg = "startBrowser", url = urlStr,title=title,id=id, header = header, body = name )))
                 kotlin.runCatching {
                     val rez= GSON.fromJson(ApiWebSocket.WaitForResponse(id), StartBrowserRe::class.java)
                     return@runBlocking  StrResponse(rez.url,rez.html)
@@ -48,6 +48,22 @@ class InitConfig {
             }
             return@runBlocking  StrResponse(urlStr,"")
         }
+        App.showBrowser = fun (urlStr: String,html: String,preloadJs:String,header:String, tocken:String) = runBlocking{
+            if(urlStr.isBlank())  return@runBlocking
+            val socket=ApiWebSocket.get(tocken)
+            if(socket!=null){
+                val id= UUID.randomUUID().toString()
+                socket.send(Gson().toJson(WebMessage(
+                    msg = "showBrowser",
+                    url = urlStr,
+                    html = html,
+                    title=preloadJs,
+                    id=id,
+                    header = header
+                )))
+            }
+        }
+
         App.startBrowserdp=fun (urlStr: String, title: String, tocken:String, header:String) = runBlocking{
             if(urlStr.isBlank())  return@runBlocking
             val socket=ApiWebSocket.get(tocken)
