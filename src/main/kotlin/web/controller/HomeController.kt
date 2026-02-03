@@ -69,6 +69,11 @@ open class HomeController {
         }
     }
 
+    @Mapping("/new")
+    fun newHome(ctx: Context) = run {
+        ctx.redirect("/new/index.html")
+    }
+
     @Mapping("/forget")
     fun forget() = run {
         ModelAndView("qread/forget.html")
