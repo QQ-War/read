@@ -38,7 +38,11 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   };
 
   if (method !== 'GET' && options.body !== undefined) {
-    init.body = JSON.stringify(options.body);
+    if (typeof options.body === 'string' && (init.headers as Record<string, string>)['Content-Type'] === 'text/plain') {
+      init.body = options.body;
+    } else {
+      init.body = JSON.stringify(options.body);
+    }
   }
 
   const response = await fetch(`${path}${query}`, init);

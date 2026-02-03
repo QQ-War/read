@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   getBookInfo,
@@ -21,6 +21,10 @@ const BookPage = () => {
   const [content, setContent] = useState<string>('');
   const [contentIndex, setContentIndex] = useState<number | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [readerMode, setReaderMode] = useState<'scroll' | 'paged'>('scroll');
+  const [jumpIndex, setJumpIndex] = useState('');
+  const pagedRef = useRef<HTMLDivElement | null>(null);
+  const [pageInfo, setPageInfo] = useState({ current: 1, total: 1 });
 
   const hasAccess = useMemo(() => token && bookUrl, [token, bookUrl]);
 
@@ -53,6 +57,12 @@ const BookPage = () => {
       setContentIndex(index);
       setStatus('');
       await saveBookProgress(token, bookUrl, index);
+      setTimeout(() => {
+        if (pagedRef.current) {
+          pagedRef.current.scrollLeft = 0;
+          updatePageInfo();
+        }
+      }, 0);
       return;
     }
     if (resp.isSuccess && resp.data?.images && resp.data.images.length > 0) {
@@ -65,6 +75,34 @@ const BookPage = () => {
     } else {
       setStatus(resp.errorMsg || '加载失败');
     }
+  };
+
+  const updatePageInfo = () => {
+    const container = pagedRef.current;
+    if (!container) return;
+    const width = container.clientWidth || 1;
+    const total = Math.max(1, Math.ceil(container.scrollWidth / width));
+    const current = Math.min(total, Math.max(1, Math.round(container.scrollLeft / width) + 1));
+    setPageInfo({ current, total });
+  };
+
+  const scrollPage = (dir: 'prev' | 'next') => {
+    const container = pagedRef.current;
+    if (!container) return;
+    const width = container.clientWidth;
+    const next = dir === 'next' ? container.scrollLeft + width : container.scrollLeft - width;
+    container.scrollTo({ left: next, behavior: 'smooth' });
+    setTimeout(updatePageInfo, 300);
+  };
+
+  const handleJump = async () => {
+    if (!jumpIndex.trim()) return;
+    const target = Number(jumpIndex) - 1;
+    if (Number.isNaN(target) || target < 0 || target >= chapters.length) {
+      setStatus('章节序号不合法');
+      return;
+    }
+    await loadChapter(target);
   };
 
   const handleRefresh = async () => {
@@ -120,6 +158,27 @@ const BookPage = () => {
           <span className="status-line">{status}</span>
         </div>
       </div>
+      <div className="reader-toolbar">
+        <div>
+          章节进度：{contentIndex !== null ? contentIndex + 1 : '-'} / {chapters.length || '-'}
+        </div>
+        <div className="jump">
+          <input
+            value={jumpIndex}
+            onChange={(e) => setJumpIndex(e.target.value)}
+            placeholder="跳到章节序号"
+          />
+          <button onClick={handleJump}>跳转</button>
+        </div>
+        <div className="mode-switch">
+          <button onClick={() => setReaderMode('scroll')} disabled={readerMode === 'scroll'}>
+            滚动
+          </button>
+          <button onClick={() => setReaderMode('paged')} disabled={readerMode === 'paged'}>
+            分页
+          </button>
+        </div>
+      </div>
       {book && (
         <div className="book-meta">
           <div className="cover small">
@@ -162,8 +221,24 @@ const BookPage = () => {
         >
           下一章
         </button>
+        {readerMode === 'paged' && content && (
+          <>
+            <button onClick={() => scrollPage('prev')}>上一页</button>
+            <button onClick={() => scrollPage('next')}>下一页</button>
+            <span className="status-line">
+              页 {pageInfo.current} / {pageInfo.total}
+            </span>
+          </>
+        )}
       </div>
-      {content && <article className="reader" dangerouslySetInnerHTML={{ __html: content }} />}
+      {content && readerMode === 'scroll' && (
+        <article className="reader" dangerouslySetInnerHTML={{ __html: content }} />
+      )}
+      {content && readerMode === 'paged' && (
+        <div className="reader-paged" ref={pagedRef} onScroll={updatePageInfo}>
+          <article dangerouslySetInnerHTML={{ __html: content }} />
+        </div>
+      )}
       {!content && images.length > 0 && (
         <div className="image-list">
           {images.map((src, idx) => (

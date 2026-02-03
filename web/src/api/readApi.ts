@@ -66,12 +66,87 @@ export const getBookSources = (accessToken: string, page = 1) =>
     query: { accessToken, page },
   });
 
+export const getBookSourcesPage = (accessToken: string) =>
+  request<ApiResponse>(api.bookSourcesPage, {
+    query: { accessToken },
+  });
+
+export const getBookSourcesNew = (accessToken: string, md5: string, page: number) =>
+  request<ApiResponse>(api.bookSources, {
+    query: { accessToken, md5, page },
+  });
+
 export const getRssSources = (accessToken: string, page = 1) =>
   request<ApiResponse>(api.rssSources, {
     query: { accessToken, page },
   });
 
+export const getRssSourcesPage = (accessToken: string) =>
+  request<ApiResponse>(api.rssSourcesPage, {
+    query: { accessToken },
+  });
+
+export const getRssSourcesNew = (accessToken: string, md5: string, page: number) =>
+  request<ApiResponse>(api.rssSources, {
+    query: { accessToken, md5, page },
+  });
+
 export const getTtsSources = (accessToken: string, page = 1) =>
   request<ApiResponse>(api.ttsSources, {
     query: { accessToken, page },
+  });
+
+export const getTtsSourcesPage = (accessToken: string) =>
+  request<ApiResponse>(api.ttsSourcesPage, {
+    query: { accessToken },
+  });
+
+export const getTtsSourcesNew = (accessToken: string, md5: string, page: number) =>
+  request<ApiResponse>(api.ttsSources, {
+    query: { accessToken, md5, page },
+  });
+
+export const stopBookSource = (accessToken: string, id: string, st: '0' | '1') =>
+  request<ApiResponse>(api.stopBookSource, {
+    query: { accessToken, id, st },
+  });
+
+export const delBookSource = (accessToken: string, id: string) =>
+  request<ApiResponse>(api.delBookSource, {
+    query: { accessToken, id },
+  });
+
+export const saveBookSources = (accessToken: string, content: string) =>
+  request<ApiResponse>(api.saveBookSources, {
+    method: 'POST',
+    query: { accessToken },
+    body: content,
+    headers: { 'Content-Type': 'text/plain' },
+  });
+
+export const stopRssSource = (accessToken: string, id: string, st: '0' | '1') =>
+  request<ApiResponse>(api.stopRssSource, {
+    query: { accessToken, id, st },
+  });
+
+export const delRssSource = (accessToken: string, id: string) =>
+  request<ApiResponse>(api.delRssSource, {
+    query: { accessToken, id },
+  });
+
+export const saveRssSources = (accessToken: string, source: string, urls = '') =>
+  request<ApiResponse>(api.saveRssSources, {
+    query: { accessToken, source, urls },
+  });
+
+export const addTts = (accessToken: string, tts: Record<string, unknown>) =>
+  request<ApiResponse>(api.addTts, {
+    method: 'POST',
+    query: { accessToken },
+    body: tts,
+  });
+
+export const delTts = (accessToken: string, id: string) =>
+  request<ApiResponse>(api.delTts, {
+    query: { accessToken, id },
   });

@@ -180,6 +180,33 @@ button {
   margin-bottom: 16px;
 }
 
+.reader-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.reader-toolbar .jump {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.reader-toolbar input {
+  width: 140px;
+}
+
+.mode-switch {
+  display: flex;
+  gap: 8px;
+}
+
+.mode-switch button[disabled] {
+  background: #94a3b8;
+}
+
 .image-list {
   display: flex;
   flex-direction: column;
@@ -190,6 +217,22 @@ button {
   width: 100%;
   border-radius: 8px;
   background: #e5e7eb;
+}
+
+.reader-paged {
+  height: 70vh;
+  overflow-x: auto;
+  overflow-y: hidden;
+  column-width: 360px;
+  column-gap: 32px;
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.reader-paged article {
+  width: 360px;
 }
 
 .reader {
@@ -206,4 +249,39 @@ button {
   overflow: auto;
   font-size: 12px;
   margin-bottom: 12px;
+}
+
+.code-input {
+  width: 100%;
+  min-height: 120px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 12px;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.muted {
+  font-size: 12px;
+  color: #6b7280;
 }
