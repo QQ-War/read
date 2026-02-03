@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getBookshelf, refreshBook } from '../api/readApi';
+import { resolveAssetUrl } from '../utils/assets';
 import { authStore } from '../state/auth';
 import type { BookshelfItem } from '../api/types';
 import { Link } from 'react-router-dom';
@@ -44,7 +45,11 @@ const BookshelfPage = () => {
             className="card"
           >
             <div className="cover">
-              {book.coverUrl ? <img src={book.coverUrl} alt={book.bookName} /> : <div className="placeholder" />}
+              {book.coverUrl ? (
+                <img src={resolveAssetUrl(book.coverUrl)} alt={book.bookName} />
+              ) : (
+                <div className="placeholder" />
+              )}
             </div>
             <div className="meta">
               <div className="title">{book.bookName || book.name}</div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { searchBook, saveBook } from '../api/readApi';
+import { resolveAssetUrl } from '../utils/assets';
 import { authStore } from '../state/auth';
 import type { BookshelfItem } from '../api/types';
 import { Link } from 'react-router-dom';
@@ -45,7 +46,11 @@ const SearchPage = () => {
           <div key={book.bookUrl} className="card">
             <Link to={`/book?bookUrl=${encodeURIComponent(book.bookUrl)}`} className="card-link">
               <div className="cover">
-                {book.coverUrl ? <img src={book.coverUrl} alt={book.bookName || book.name} /> : <div className="placeholder" />}
+                {book.coverUrl ? (
+                  <img src={resolveAssetUrl(book.coverUrl)} alt={book.bookName || book.name} />
+                ) : (
+                  <div className="placeholder" />
+                )}
               </div>
               <div className="meta">
                 <div className="title">{book.bookName || book.name}</div>

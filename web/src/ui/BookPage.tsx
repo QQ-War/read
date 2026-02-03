@@ -9,6 +9,7 @@ import {
   saveBookProgress,
 } from '../api/readApi';
 import { authStore } from '../state/auth';
+import { resolveAssetUrl } from '../utils/assets';
 import type { BookshelfItem, ChapterItem } from '../api/types';
 
 const BookPage = () => {
@@ -127,7 +128,7 @@ const BookPage = () => {
       name: book.bookName || book.name || '',
       bookName: book.bookName || book.name || '',
       author: book.author || '',
-      coverUrl: book.coverUrl,
+      coverUrl: resolveAssetUrl(book.coverUrl),
       intro: book.intro,
       origin: book.origin || '',
       originName: book.originName || '',
@@ -183,7 +184,7 @@ const BookPage = () => {
         <div className="book-meta">
           <div className="cover small">
             {book.coverUrl ? (
-              <img src={book.coverUrl} alt={book.bookName || book.name} />
+              <img src={resolveAssetUrl(book.coverUrl)} alt={book.bookName || book.name} />
             ) : (
               <div className="placeholder" />
             )}
