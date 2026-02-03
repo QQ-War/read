@@ -24,16 +24,33 @@ const AdminPage = () => {
   const [adminUser, setAdminUser] = useState('');
   const [adminPass, setAdminPass] = useState('');
 
+  const [editUser, setEditUser] = useState<any | null>(null);
+  const [userForm, setUserForm] = useState<Record<string, string>>({
+    id: '',
+    username: '',
+    password: '',
+    email: '',
+    phone: '',
+    source: '0',
+    AllowUpTxt: 'false',
+    AllowCache: 'false',
+    AllowImg: 'false',
+    Allowcheck: 'false',
+    comment: '',
+  });
+
   const [users, setUsers] = useState<any[]>([]);
   const [userQuery, setUserQuery] = useState('');
 
   const [sources, setSources] = useState<any[]>([]);
   const [sourceQuery, setSourceQuery] = useState('');
   const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [sourceEditor, setSourceEditor] = useState('');
 
   const [rssSources, setRssSources] = useState<any[]>([]);
   const [rssQuery, setRssQuery] = useState('');
   const [rssFile, setRssFile] = useState<File | null>(null);
+  const [rssEditor, setRssEditor] = useState('');
 
   const [codes, setCodes] = useState<any[]>([]);
   const [codeQuery, setCodeQuery] = useState('');
@@ -67,15 +84,6 @@ const AdminPage = () => {
       setStatus('');
     } else {
       setStatus(resp.errorMsg || '加载失败');
-    }
-  };
-
-  const addUser = async () => {
-    setStatus('新增用户...');
-    const resp = await adminAddUser({ username: adminUser, password: adminPass, email: '' });
-    setStatus(resp.isSuccess ? '' : resp.errorMsg || '新增失败');
-    if (resp.isSuccess) {
-      await loadUsers();
     }
   };
 
@@ -161,13 +169,117 @@ const AdminPage = () => {
                   <div className="muted">{u.email}</div>
                 </div>
                 <div className="row-actions">
+                  <button
+                    onClick={() => {
+                      setEditUser(u);
+                      setUserForm({
+                        id: u.id || '',
+                        username: u.username || '',
+                        password: '',
+                        email: u.email || '',
+                        phone: u.phone || '',
+                        source: String(u.source ?? 0),
+                        AllowUpTxt: String(u.allowUpTxt ?? u.AllowUpTxt ?? false),
+                        AllowCache: String(u.allowCache ?? u.AllowCache ?? false),
+                        AllowImg: String(u.allowImg ?? u.AllowImg ?? false),
+                        Allowcheck: String(u.allowcheck ?? u.Allowcheck ?? false),
+                        comment: u.comment || '',
+                      });
+                    }}
+                  >
+                    编辑
+                  </button>
                   <button onClick={() => adminDelUser(u.id)}>删除</button>
                 </div>
               </div>
             ))}
           </div>
-          <div className="admin-toolbar">
-            <button onClick={addUser}>用当前账号/密码新增用户</button>
+          <div className="admin-editor">
+            <h4>{editUser ? '编辑用户' : '新增用户'}</h4>
+            <div className="form-grid">
+              <input
+                placeholder="用户名"
+                value={userForm.username}
+                onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+              />
+              <input
+                placeholder="密码(编辑时可留空)"
+                value={userForm.password}
+                onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+              />
+              <input
+                placeholder="邮箱"
+                value={userForm.email}
+                onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+              />
+              <input
+                placeholder="手机"
+                value={userForm.phone}
+                onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+              />
+              <input
+                placeholder="来源(source)"
+                value={userForm.source}
+                onChange={(e) => setUserForm({ ...userForm, source: e.target.value })}
+              />
+              <input
+                placeholder="备注"
+                value={userForm.comment}
+                onChange={(e) => setUserForm({ ...userForm, comment: e.target.value })}
+              />
+            </div>
+            <div className="form-grid">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={userForm.AllowUpTxt === 'true'}
+                  onChange={(e) => setUserForm({ ...userForm, AllowUpTxt: String(e.target.checked) })}
+                />
+                允许上传
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={userForm.AllowCache === 'true'}
+                  onChange={(e) => setUserForm({ ...userForm, AllowCache: String(e.target.checked) })}
+                />
+                允许缓存
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={userForm.AllowImg === 'true'}
+                  onChange={(e) => setUserForm({ ...userForm, AllowImg: String(e.target.checked) })}
+                />
+                允许图片
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={userForm.Allowcheck === 'true'}
+                  onChange={(e) => setUserForm({ ...userForm, Allowcheck: String(e.target.checked) })}
+                />
+                允许校验
+              </label>
+            </div>
+            <div className="admin-toolbar">
+              <button
+                onClick={async () => {
+                  setStatus(editUser ? '保存中...' : '新增中...');
+                  const resp = await adminAddUser(userForm);
+                  setStatus(resp.isSuccess ? '' : resp.errorMsg || '保存失败');
+                  if (resp.isSuccess) {
+                    setEditUser(null);
+                    await loadUsers();
+                  }
+                }}
+              >
+                {editUser ? '保存' : '新增'}
+              </button>
+              {editUser && (
+                <button onClick={() => setEditUser(null)}>取消编辑</button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -195,6 +307,23 @@ const AdminPage = () => {
               上传书源
             </button>
           </div>
+          <textarea
+            className="code-input"
+            placeholder="编辑书源 JSON（单条），点击保存"
+            value={sourceEditor}
+            onChange={(e) => setSourceEditor(e.target.value)}
+          />
+          <button
+            onClick={async () => {
+              if (!sourceEditor.trim()) return;
+              const file = new File([sourceEditor.trim()], 'source.json', { type: 'application/json' });
+              const resp = await adminUploadBookSource(file);
+              setStatus(resp.isSuccess ? '' : resp.errorMsg || '保存失败');
+              await loadSources();
+            }}
+          >
+            保存编辑
+          </button>
           <div className="list">
             {sources.map((s) => (
               <div key={s.bookSourceUrl} className="row">
@@ -212,6 +341,13 @@ const AdminPage = () => {
                     }}
                   >
                     {s.enabled ? '停用' : '启用'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSourceEditor(JSON.stringify(s, null, 2));
+                    }}
+                  >
+                    编辑
                   </button>
                   <button
                     onClick={async () => {
@@ -247,6 +383,23 @@ const AdminPage = () => {
               上传 RSS
             </button>
           </div>
+          <textarea
+            className="code-input"
+            placeholder="编辑 RSS JSON（单条），点击保存"
+            value={rssEditor}
+            onChange={(e) => setRssEditor(e.target.value)}
+          />
+          <button
+            onClick={async () => {
+              if (!rssEditor.trim()) return;
+              const file = new File([rssEditor.trim()], 'rss.json', { type: 'application/json' });
+              const resp = await adminUploadRssSource(file);
+              setStatus(resp.isSuccess ? '' : resp.errorMsg || '保存失败');
+              await loadRss();
+            }}
+          >
+            保存编辑
+          </button>
           <div className="list">
             {rssSources.map((s) => (
               <div key={s.sourceUrl} className="row">
@@ -264,6 +417,13 @@ const AdminPage = () => {
                     }}
                   >
                     {s.enabled ? '停用' : '启用'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setRssEditor(JSON.stringify(s, null, 2));
+                    }}
+                  >
+                    编辑
                   </button>
                   <button
                     onClick={async () => {
