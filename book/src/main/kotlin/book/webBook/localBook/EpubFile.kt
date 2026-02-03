@@ -205,9 +205,10 @@ class EpubFile(var book: Book) {
                }
                it.attr("src", url)
            }else{
-               val data=epubBook!!.resources.resourceMap[it.attr("src")]?.data
+               val src = it.attr("src")
+               val data=epubBook!!.resources.resourceMap[src]?.data
                if(data != null){
-                   val coverFile = "${MD5Utils.md5Encode16(book.bookUrl+it.attr("src"))}.jpg"
+                   val coverFile = "${MD5Utils.md5Encode16(book.bookUrl+src)}.jpg"
                    val relativeCoverUrl = Paths.get("assets", book.getUserNameSpace(), "covers", coverFile).toString()
                    var url="/" + relativeCoverUrl
                    val coverUrl = Paths.get(book.workRoot(), "storage", relativeCoverUrl).toString()
@@ -215,6 +216,11 @@ class EpubFile(var book: Book) {
                        FileUtils.writeBytes(coverUrl,data)
                    }
                    it.attr("src", url)
+               } else {
+                   val normalized = normalizeLocalAssetSrc(src)
+                   if (normalized != src) {
+                       it.attr("src", normalized)
+                   }
                }
 
            }
@@ -314,6 +320,27 @@ class EpubFile(var book: Book) {
     private fun getImage(href: String): InputStream? {
         val abHref = href.replace("../", "")
         return epubBook?.resources?.getByHref(abHref)?.inputStream
+    }
+
+    private fun normalizeLocalAssetSrc(src: String): String {
+        if (src.isBlank()) return src
+        var s = src.trim()
+        if (s.startsWith("http//")) {
+            s = "http://" + s.removePrefix("http//")
+        } else if (s.startsWith("https//")) {
+            s = "https://" + s.removePrefix("https//")
+        } else if (s.startsWith("http:/") && !s.startsWith("http://")) {
+            s = "http://" + s.removePrefix("http:/")
+        } else if (s.startsWith("https:/") && !s.startsWith("https://")) {
+            s = "https://" + s.removePrefix("https:/")
+        }
+        if (s.startsWith("http://assets/") || s.startsWith("https://assets/")) {
+            return "/assets/" + s.substringAfter("assets/")
+        }
+        if (s.startsWith("assets/")) {
+            return "/assets/" + s.removePrefix("assets/")
+        }
+        return s
     }
 
     private fun upBookInfo() {
