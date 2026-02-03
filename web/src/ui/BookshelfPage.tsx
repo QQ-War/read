@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getBookshelf } from '../api/readApi';
+import { getBookshelf, refreshBook } from '../api/readApi';
 import { authStore } from '../state/auth';
 import type { BookshelfItem } from '../api/types';
 import { Link } from 'react-router-dom';
@@ -9,19 +9,21 @@ const BookshelfPage = () => {
   const [status, setStatus] = useState('');
   const token = authStore.getToken();
 
+  const loadShelf = async () => {
+    if (!token) return;
+    setStatus('加载书架...');
+    const resp = await getBookshelf(token, 1);
+    if (resp.isSuccess && resp.data) {
+      setBooks(resp.data);
+      setStatus('');
+    } else {
+      setStatus(resp.errorMsg || '加载失败');
+    }
+  };
+
   useEffect(() => {
     if (!token) return;
-    const run = async () => {
-      setStatus('加载书架...');
-      const resp = await getBookshelf(token, 1);
-      if (resp.isSuccess && resp.data) {
-        setBooks(resp.data);
-        setStatus('');
-      } else {
-        setStatus(resp.errorMsg || '加载失败');
-      }
-    };
-    run();
+    loadShelf();
   }, [token]);
 
   if (!token) {
@@ -45,8 +47,25 @@ const BookshelfPage = () => {
               {book.coverUrl ? <img src={book.coverUrl} alt={book.bookName} /> : <div className="placeholder" />}
             </div>
             <div className="meta">
-              <div className="title">{book.bookName}</div>
+              <div className="title">{book.bookName || book.name}</div>
               <div className="author">{book.author}</div>
+            </div>
+            <div className="card-actions">
+              <button
+                onClick={async (e) => {
+                  e.preventDefault();
+                  if (!token) return;
+                  setStatus('刷新中...');
+                  const resp = await refreshBook(token, book.bookUrl);
+                  if (!resp.isSuccess) {
+                    setStatus(resp.errorMsg || '刷新失败');
+                    return;
+                  }
+                  await loadShelf();
+                }}
+              >
+                刷新
+              </button>
             </div>
           </Link>
         ))}

@@ -18,6 +18,7 @@ export interface UserInfo {
 
 export interface BookshelfItem {
   bookUrl: string;
+  name?: string;
   bookName: string;
   author?: string;
   coverUrl?: string;
@@ -25,6 +26,11 @@ export interface BookshelfItem {
   durChapterTitle?: string;
   intro?: string;
   type?: number;
+  origin?: string;
+  originName?: string;
+  kind?: string;
+  latestChapterTitle?: string;
+  tocUrl?: string;
 }
 
 export interface ChapterItem {
@@ -40,3 +46,5 @@ export interface BookContent {
   type?: number;
   images?: string[];
 }
+
+export type SearchBook = BookshelfItem & Record<string, unknown>;

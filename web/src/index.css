@@ -27,6 +27,12 @@ body {
   margin-bottom: 16px;
 }
 
+.panel-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .form-row {
   display: flex;
   flex-direction: column;
@@ -83,6 +89,23 @@ button {
   gap: 10px;
   text-decoration: none;
   color: inherit;
+}
+
+.card-link {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.card-actions button {
+  background: #0f172a;
 }
 
 .cover {
@@ -151,8 +174,36 @@ button {
   color: white;
 }
 
+.reader-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.image-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.image-list img {
+  width: 100%;
+  border-radius: 8px;
+  background: #e5e7eb;
+}
+
 .reader {
   line-height: 1.8;
   font-size: 15px;
   color: #111827;
+}
+
+.code-block {
+  background: #0b1020;
+  color: #e2e8f0;
+  padding: 16px;
+  border-radius: 12px;
+  overflow: auto;
+  font-size: 12px;
+  margin-bottom: 12px;
 }

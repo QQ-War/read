@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getBookInfo, getChapterList, getBookContent } from '../api/readApi';
+import {
+  getBookInfo,
+  getChapterList,
+  getBookContent,
+  saveBook,
+  refreshBook,
+  saveBookProgress,
+} from '../api/readApi';
 import { authStore } from '../state/auth';
 import type { BookshelfItem, ChapterItem } from '../api/types';
 
@@ -13,6 +20,7 @@ const BookPage = () => {
   const [status, setStatus] = useState('');
   const [content, setContent] = useState<string>('');
   const [contentIndex, setContentIndex] = useState<number | null>(null);
+  const [images, setImages] = useState<string[]>([]);
 
   const hasAccess = useMemo(() => token && bookUrl, [token, bookUrl]);
 
@@ -41,11 +49,61 @@ const BookPage = () => {
     const resp = await getBookContent(token, bookUrl, index);
     if (resp.isSuccess && resp.data?.content) {
       setContent(resp.data.content);
+      setImages(resp.data.images ?? []);
       setContentIndex(index);
       setStatus('');
+      await saveBookProgress(token, bookUrl, index);
+      return;
+    }
+    if (resp.isSuccess && resp.data?.images && resp.data.images.length > 0) {
+      setContent('');
+      setImages(resp.data.images);
+      setContentIndex(index);
+      setStatus('');
+      await saveBookProgress(token, bookUrl, index);
+      return;
     } else {
       setStatus(resp.errorMsg || '加载失败');
     }
+  };
+
+  const handleRefresh = async () => {
+    if (!token) return;
+    setStatus('刷新目录中...');
+    const resp = await refreshBook(token, bookUrl);
+    if (!resp.isSuccess) {
+      setStatus(resp.errorMsg || '刷新失败');
+      return;
+    }
+    const listResp = await getChapterList(token, bookUrl);
+    if (listResp.isSuccess && listResp.data) {
+      setChapters(listResp.data);
+    }
+    setStatus('');
+  };
+
+  const handleAddShelf = async () => {
+    if (!token || !book) return;
+    const payload = {
+      bookUrl: book.bookUrl,
+      name: book.bookName || book.name || '',
+      bookName: book.bookName || book.name || '',
+      author: book.author || '',
+      coverUrl: book.coverUrl,
+      intro: book.intro,
+      origin: book.origin || '',
+      originName: book.originName || '',
+      type: book.type || 0,
+      latestChapterTitle: book.latestChapterTitle || book.lastChapterTitle,
+      tocUrl: book.tocUrl || '',
+    };
+    setStatus('加入书架...');
+    const resp = await saveBook(token, payload, 0);
+    if (!resp.isSuccess) {
+      setStatus(resp.errorMsg || '加入失败');
+      return;
+    }
+    setStatus('');
   };
 
   if (!token) {
@@ -55,16 +113,24 @@ const BookPage = () => {
   return (
     <section className="panel">
       <div className="panel-header">
-        <h2>{book?.bookName || '书籍详情'}</h2>
-        <span className="status-line">{status}</span>
+        <h2>{book?.bookName || book?.name || '书籍详情'}</h2>
+        <div className="panel-actions">
+          <button onClick={handleRefresh}>刷新目录</button>
+          <button onClick={handleAddShelf}>加入书架</button>
+          <span className="status-line">{status}</span>
+        </div>
       </div>
       {book && (
         <div className="book-meta">
           <div className="cover small">
-            {book.coverUrl ? <img src={book.coverUrl} alt={book.bookName} /> : <div className="placeholder" />}
+            {book.coverUrl ? (
+              <img src={book.coverUrl} alt={book.bookName || book.name} />
+            ) : (
+              <div className="placeholder" />
+            )}
           </div>
           <div>
-            <div className="title">{book.bookName}</div>
+            <div className="title">{book.bookName || book.name}</div>
             <div className="author">{book.author}</div>
             <div className="intro">{book.intro}</div>
           </div>
@@ -81,8 +147,29 @@ const BookPage = () => {
           </button>
         ))}
       </div>
-      {content && (
-        <article className="reader" dangerouslySetInnerHTML={{ __html: content }} />
+      <div className="reader-actions">
+        <button
+          onClick={() => contentIndex !== null && contentIndex > 0 && loadChapter(contentIndex - 1)}
+          disabled={contentIndex === null || contentIndex <= 0}
+        >
+          上一章
+        </button>
+        <button
+          onClick={() =>
+            contentIndex !== null && contentIndex < chapters.length - 1 && loadChapter(contentIndex + 1)
+          }
+          disabled={contentIndex === null || contentIndex >= chapters.length - 1}
+        >
+          下一章
+        </button>
+      </div>
+      {content && <article className="reader" dangerouslySetInnerHTML={{ __html: content }} />}
+      {!content && images.length > 0 && (
+        <div className="image-list">
+          {images.map((src, idx) => (
+            <img key={`${src}-${idx}`} src={src} alt={`page-${idx + 1}`} />
+          ))}
+        </div>
       )}
     </section>
   );

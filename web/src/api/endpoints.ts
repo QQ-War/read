@@ -10,4 +10,9 @@ export const api = {
   bookContent: `${API_PREFIX}/getBookContentNew`,
   search: `${API_PREFIX}/searchBook`,
   saveProgress: `${API_PREFIX}/saveBookProgress`,
+  saveBook: `${API_PREFIX}/saveBook`,
+  refreshBook: `${API_PREFIX}/refreshBook`,
+  bookSources: `${API_PREFIX}/getBookSourcesNew`,
+  rssSources: `${API_PREFIX}/getRssSourcessNew`,
+  ttsSources: `${API_PREFIX}/getallttsNew`,
 };

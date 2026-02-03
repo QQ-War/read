@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { searchBook } from '../api/readApi';
+import { searchBook, saveBook } from '../api/readApi';
 import { authStore } from '../state/auth';
 import type { BookshelfItem } from '../api/types';
 import { Link } from 'react-router-dom';
@@ -42,19 +42,34 @@ const SearchPage = () => {
       <div className="status-line">{status}</div>
       <div className="grid">
         {books.map((book) => (
-          <Link
-            key={book.bookUrl}
-            to={`/book?bookUrl=${encodeURIComponent(book.bookUrl)}`}
-            className="card"
-          >
-            <div className="cover">
-              {book.coverUrl ? <img src={book.coverUrl} alt={book.bookName} /> : <div className="placeholder" />}
+          <div key={book.bookUrl} className="card">
+            <Link to={`/book?bookUrl=${encodeURIComponent(book.bookUrl)}`} className="card-link">
+              <div className="cover">
+                {book.coverUrl ? <img src={book.coverUrl} alt={book.bookName || book.name} /> : <div className="placeholder" />}
+              </div>
+              <div className="meta">
+                <div className="title">{book.bookName || book.name}</div>
+                <div className="author">{book.author}</div>
+              </div>
+            </Link>
+            <div className="card-actions">
+              <button
+                onClick={async () => {
+                  if (!token) return;
+                  setStatus('加入书架...');
+                  const payload = {
+                    ...book,
+                    name: book.bookName || book.name || '',
+                    bookName: book.bookName || book.name || '',
+                  };
+                  const resp = await saveBook(token, payload, 0);
+                  setStatus(resp.isSuccess ? '' : resp.errorMsg || '加入失败');
+                }}
+              >
+                加入书架
+              </button>
             </div>
-            <div className="meta">
-              <div className="title">{book.bookName}</div>
-              <div className="author">{book.author}</div>
-            </div>
-          </Link>
+          </div>
         ))}
       </div>
     </section>

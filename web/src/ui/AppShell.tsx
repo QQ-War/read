@@ -18,6 +18,9 @@ const AppShell = () => {
         <nav>
           <NavLink to="/bookshelf">书架</NavLink>
           <NavLink to="/search">搜索</NavLink>
+          <NavLink to="/sources">书源</NavLink>
+          <NavLink to="/rss">RSS</NavLink>
+          <NavLink to="/tts">TTS</NavLink>
         </nav>
         <div className="shell-footer">
           {token ? (
