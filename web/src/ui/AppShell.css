@@ -1,0 +1,74 @@
+.shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  background: #f5f6f8;
+}
+
+.shell-nav {
+  background: #0f172a;
+  color: #fff;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.shell-nav nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shell-nav a {
+  color: #cbd5f5;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.shell-nav a.active {
+  background: rgba(99, 102, 241, 0.2);
+  color: #fff;
+}
+
+.shell-footer {
+  margin-top: auto;
+}
+
+.shell-main {
+  padding: 32px;
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .shell-nav {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .shell-nav nav {
+    flex-direction: row;
+  }
+
+  .shell-main {
+    padding: 20px;
+  }
+}
