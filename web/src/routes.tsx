@@ -7,6 +7,7 @@ import BookPage from './ui/BookPage';
 import SourcesPage from './ui/SourcesPage';
 import RssPage from './ui/RssPage';
 import TtsPage from './ui/TtsPage';
+import AdminPage from './ui/AdminPage';
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
       { path: 'sources', element: <SourcesPage /> },
       { path: 'rss', element: <RssPage /> },
       { path: 'tts', element: <TtsPage /> },
+      { path: 'admin', element: <AdminPage /> },
     ],
   },
 ]);

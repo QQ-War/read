@@ -235,6 +235,23 @@ button {
   width: 360px;
 }
 
+.admin-panel {
+  padding: 16px;
+}
+
+.admin-embed {
+  height: 80vh;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.admin-embed iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
 .reader {
   line-height: 1.8;
   font-size: 15px;
