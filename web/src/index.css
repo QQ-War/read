@@ -239,17 +239,34 @@ button {
   padding: 16px;
 }
 
-.admin-embed {
-  height: 80vh;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
+.admin-login {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
-.admin-embed iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.admin-tabs button.active {
+  background: #0f172a;
+}
+
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .reader {
