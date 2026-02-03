@@ -21,7 +21,7 @@ fun main(args: Array<String>) {
         app.enableWebSocket(true)
         app.filter(CrossFilter().pathPatterns("/assets/covers/**").allowedOrigins("*"))
         app.filter(CrossFilter().pathPatterns("/assets/codes/**").allowedOrigins("*"))
-        StaticMappings.add("/assets/",  FileStaticRepository("storage/assets/"))
+        // StaticMappings for /assets are disabled to enforce accessToken via API
        // app.http("/webdav/*", handler)
        // app.get("/") { ctx -> ctx.forward("/index.html"); }
     }

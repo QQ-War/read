@@ -1219,8 +1219,9 @@ open class ReadController : BaseController() {
     }
 
     @Mapping("/proxypng")
-    open fun proxypng(ctx: Context, url: String?) = run {
+    open fun proxypng(ctx: Context, url: String?, accessToken: String?) = run {
         if (url.isNullOrBlank()) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
+        getuserbytocken(accessToken)
         
         val normalizedUrl = normalizeImageUrl(url)
         logger.info("proxypng normalized: $normalizedUrl")
@@ -1322,6 +1323,41 @@ open class ReadController : BaseController() {
                 JsonResponse(isSuccess = false,errorMsg ="GET请求失败")
             }
         }
+    }
+
+    @Mapping("/assets")
+    open fun assets(ctx: Context, path: String?, accessToken: String?) = run {
+        if (path.isNullOrBlank()) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
+        getuserbytocken(accessToken)
+
+        val decodedPath = kotlin.runCatching { java.net.URLDecoder.decode(path, "UTF-8") }.getOrDefault(path)
+        val normalizedPath = if (decodedPath.startsWith("/assets/")) decodedPath else "/assets/" + decodedPath.removePrefix("/")
+        val storageRoot = File("storage").canonicalFile
+        val localFile = File("storage${normalizedPath}").canonicalFile
+        if (!localFile.path.startsWith(storageRoot.path)) {
+            throw DataThrowable().data(JsonResponse(false, NOT_BANK))
+        }
+        if (localFile.exists() && localFile.isFile) {
+            val ext = localFile.extension.lowercase()
+            val contentType = when (ext) {
+                "jpg", "jpeg" -> "image/jpeg"
+                "png" -> "image/png"
+                "webp" -> "image/webp"
+                "gif" -> "image/gif"
+                else -> "application/octet-stream"
+            }
+            ctx.contentType(contentType)
+            localFile.inputStream().use { i ->
+                val b = ByteArray(4096)
+                var len: Int
+                while ((i.read(b).also { len = it }) != -1) {
+                    ctx.outputStream().write(b, 0, len)
+                }
+            }
+            ctx.flush()
+            return@run
+        }
+        throw DataThrowable().data(JsonResponse(false, "资源不存在"))
     }
 
 
