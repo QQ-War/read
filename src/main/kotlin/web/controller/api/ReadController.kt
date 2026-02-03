@@ -230,7 +230,8 @@ open class ReadController : BaseController() {
                     }
                 }
                 val book = Book.initLocalBook(url, url, "")
-                val content = LocalBook.getContent(book, chapterlist[index ?: 0]).toString()
+                val rawContent = LocalBook.getContent(book, chapterlist[index ?: 0]).toString()
+                val content = normalizeLocalAssetUrls(rawContent)
                 if (content.contains("pdfImage")) {
                     val booklist = booklistMapper.getbook(user.id!!, url)
                     if (booklist != null && booklist.type != 2) {
@@ -1181,6 +1182,17 @@ open class ReadController : BaseController() {
     }
 
     private val pngDir = FileUtils.createFolderIfNotExist(appCtx.externalFiles, "assets","proxy")
+
+    private fun normalizeLocalAssetUrls(content: String): String {
+        var output = content
+        output = output.replace("http//assets/", "/assets/")
+        output = output.replace("https//assets/", "/assets/")
+        output = output.replace("http:/assets/", "/assets/")
+        output = output.replace("https:/assets/", "/assets/")
+        output = output.replace("http://assets/", "/assets/")
+        output = output.replace("https://assets/", "/assets/")
+        return output
+    }
 
     private fun normalizeImageUrl(url: String): String {
         // 1. 剥离 Legado 附加配置后缀 (如 ,{...} 或 ,%7B...)
