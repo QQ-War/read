@@ -817,7 +817,7 @@ open class ReadController : BaseController() {
             }
             if (it.coverUrl.isNullOrBlank() && !it.bookUrl.isNullOrBlank() && it.bookUrl!!.lowercase().endsWith(".pdf")) {
                 val encodedPath = java.net.URLEncoder.encode(it.bookUrl, "UTF-8").replace("+", "%20")
-                it.coverUrl = "/api/v$apiversion/pdfImage?path=$encodedPath&page=0"
+                it.coverUrl = "/api/v$apiversion/pdfImage?path=$encodedPath&page=0&accessToken=${accessToken ?: ""}"
             }
         }
        JsonResponse(true,if (appversion ==version) "ok" else appversion).Data(book)
@@ -1364,6 +1364,7 @@ open class ReadController : BaseController() {
     @Mapping("/pdfImage")
     open fun pdfImage(ctx: Context, path: String?, page: Int?, accessToken: String?) = run {
         if (path.isNullOrBlank() || page == null) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
+        getuserbytocken(accessToken)
         
         // 尝试解码路径
         val decodedPath = kotlin.runCatching { java.net.URLDecoder.decode(path, "UTF-8") }.getOrDefault(path)

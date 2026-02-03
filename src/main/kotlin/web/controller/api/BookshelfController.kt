@@ -58,7 +58,7 @@ open class BookshelfController:BaseController() {
             }
             if (it.coverUrl.isNullOrBlank() && !it.bookUrl.isNullOrBlank() && it.bookUrl!!.lowercase().endsWith(".pdf")) {
                 val encodedPath = java.net.URLEncoder.encode(it.bookUrl, "UTF-8").replace("+", "%20")
-                it.coverUrl = "/api/v$apiversion/pdfImage?path=$encodedPath&page=0"
+                it.coverUrl = "/api/v$apiversion/pdfImage?path=$encodedPath&page=0&accessToken=${accessToken ?: ""}"
             }
             it.readchapter=""
             if(list.size < 50){
