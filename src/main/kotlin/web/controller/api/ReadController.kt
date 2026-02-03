@@ -571,7 +571,11 @@ open class ReadController : BaseController() {
         }
         
         val geturl = URI(url).toURL()
-        SslUtils.ignoreSsl()
+        // SSRF 防御: 过滤内网 IP
+        if (isInternalAddress(geturl.host)) {
+            logger.warn("阻止内网访问: ${geturl.host}")
+            return null
+        }
         val connection = geturl.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
         runCatching {
@@ -618,7 +622,13 @@ open class ReadController : BaseController() {
             val (nurl, headers) = geturlandheader(url)
             val finalUrl = normalizeImageUrl(nurl)
             val requestUrl = URL(finalUrl)
-            SslUtils.ignoreSsl()
+            
+            // SSRF 防御: 过滤内网 IP
+            if (isInternalAddress(requestUrl.host)) {
+                logger.warn("阻止内网访问: ${requestUrl.host}")
+                return null
+            }
+
             val connection = requestUrl.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
             connection.setRequestProperty("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Mobile/15E148 Safari/604.1")
@@ -934,7 +944,13 @@ open class ReadController : BaseController() {
         getuserbytocken(accessToken)
         if (url.isNullOrBlank()) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
         val geturl = URI(url).toURL()
-        SslUtils.ignoreSsl()
+        
+        // SSRF 防御: 过滤内网 IP
+        if (isInternalAddress(geturl.host)) {
+            logger.warn("阻止内网访问: ${geturl.host}")
+            throw DataThrowable().data(JsonResponse(false, "禁止访问内网资源"))
+        }
+
         val connection = geturl.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
         runCatching {
@@ -968,7 +984,13 @@ open class ReadController : BaseController() {
         getuserbytocken(accessToken)
         if (url.isNullOrBlank()) throw DataThrowable().data(JsonResponse(false, NOT_BANK))
         val geturl = URI(url).toURL()
-        SslUtils.ignoreSsl()
+        
+        // SSRF 防御: 过滤内网 IP
+        if (isInternalAddress(geturl.host)) {
+            logger.warn("阻止内网访问: ${geturl.host}")
+            throw DataThrowable().data(JsonResponse(false, "禁止访问内网资源"))
+        }
+
         val connection = geturl.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
         connection.connectTimeout = 20*1000
@@ -1271,7 +1293,13 @@ open class ReadController : BaseController() {
             val (nurl , headers)=geturlandheader(url)
             val finalUrl = normalizeImageUrl(nurl)
             val requestUrl = URL(finalUrl)
-            SslUtils.ignoreSsl();
+            
+            // SSRF 防御: 过滤内网 IP
+            if (isInternalAddress(requestUrl.host)) {
+                logger.warn("阻止内网访问: ${requestUrl.host}")
+                throw DataThrowable().data(JsonResponse(false, "禁止访问内网资源"))
+            }
+
             val connection = requestUrl.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
             
@@ -1372,18 +1400,23 @@ open class ReadController : BaseController() {
         val decodedPath = kotlin.runCatching { java.net.URLDecoder.decode(path, "UTF-8") }.getOrDefault(path)
         logger.info("请求PDF图片: $decodedPath, 页码: $page")
         
-        var file = File(decodedPath)
-        if (!file.exists()) {
-            val marker = "/local/"
-            val idx = decodedPath.indexOf(marker)
-            if (idx >= 0) {
-                val rel = decodedPath.substring(idx + marker.length)
-                val alt = File(appCtx.externalFiles, "local/$rel")
-                if (alt.exists()) {
-                    file = alt
-                }
+        // 安全校验: 限制文件路径，防止读取任意系统文件
+        val storageRoot = File(appCtx.externalFiles, "local").canonicalFile
+        var file = if (decodedPath.startsWith("/")) {
+             File(decodedPath).canonicalFile
+        } else {
+             File(storageRoot, decodedPath).canonicalFile
+        }
+
+        if (!file.path.startsWith(storageRoot.path)) {
+            // 如果不在 local 目录下，尝试检查是否在 externalFiles 根目录下，但仍需谨慎
+            val externalRoot = appCtx.externalFiles.canonicalFile
+            if (!file.path.startsWith(externalRoot.path)) {
+                 logger.warn("拒绝访问非法路径: ${file.path}")
+                 throw DataThrowable().data(JsonResponse(false, "非法的文件路径"))
             }
         }
+
         if (!file.exists()) {
             logger.error("PDF文件不存在 (绝对路径): ${file.absolutePath}")
             throw DataThrowable().data(JsonResponse(false, "文件不存在: $decodedPath"))
