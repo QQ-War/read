@@ -41,6 +41,12 @@ open class BaseController {
 
     val cachetime=60
 
+    fun parseApiVersion(raw: String?): Int? {
+        if (raw.isNullOrBlank()) return null
+        val cleaned = raw.trim().removePrefix("v").removePrefix("V")
+        return cleaned.toIntOrNull()
+    }
+
     fun getuserbytocken(accessToken:String?): Users{
         if (accessToken.isNullOrBlank()) {
             throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))

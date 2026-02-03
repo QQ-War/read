@@ -53,7 +53,7 @@ open class UserController:BaseController() {
     }
 
     @Mapping("/login")
-    fun login(username:String? , password:String? , model:String?,@Path v:Int) = run {
+    fun login(username:String? , password:String? , model:String?,@Path v:String?) = run {
         if (username.isNullOrBlank() || password.isNullOrBlank() )  {
             throw DataThrowable().data(JsonResponse(false,NOT_BANK))
         }
@@ -62,9 +62,10 @@ open class UserController:BaseController() {
         if (user == null || !user.password.equals(passsign( password))) {
             throw DataThrowable().data(JsonResponse(false,PASS_ERROR))
         }
-        if(v < apiversion){
+        val reqVersion = parseApiVersion(v) ?: throw DataThrowable().data(JsonResponse(false,NOT_BANK))
+        if(reqVersion < apiversion){
             throw DataThrowable().data(JsonResponse(false,"当前app版本已不在支持，请更新版本"))
-        }else  if(v > apiversion){
+        }else  if(reqVersion > apiversion){
             throw DataThrowable().data(JsonResponse(false,"当前后端不支持您的app，请联系管理员更新后端"))
         }
 

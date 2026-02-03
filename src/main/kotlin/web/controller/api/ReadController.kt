@@ -794,10 +794,11 @@ open class ReadController : BaseController() {
 
    // @Cache(key = "getBookshelf:\${accessToken}", tags = "getBookshelf", seconds = 20)
     @Mapping("/getBookshelf")
-    open fun getBookshelf(accessToken: String?,version:String?,name:String?,@Path v:Int) = run {
-       if(v < apiversion){
+    open fun getBookshelf(accessToken: String?,version:String?,name:String?,@Path v:String?) = run {
+       val reqVersion = parseApiVersion(v) ?: throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))
+       if(reqVersion < apiversion){
            throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))
-       }else  if(v > apiversion){
+       }else  if(reqVersion > apiversion){
            throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))
        }
         val user = getuserbytocken(accessToken)
@@ -853,10 +854,11 @@ open class ReadController : BaseController() {
 
     //@Cache(key = "getBookSources", tags = "getBookSources", seconds = 600)
     @Mapping("/getBookSources")
-    open fun getBookSources(accessToken: String?,isall: String?,@Path v:Int ) = run {
-        if(v < apiversion){
+    open fun getBookSources(accessToken: String?,isall: String?,@Path v:String? ) = run {
+        val reqVersion = parseApiVersion(v) ?: throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))
+        if(reqVersion < apiversion){
             throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))
-        }else  if(v > apiversion){
+        }else  if(reqVersion > apiversion){
             throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))
         }
         val user = getuserbytocken(accessToken)
