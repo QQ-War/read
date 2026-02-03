@@ -1,4 +1,4 @@
-export const API_PREFIX = '/api/v1';
+export const API_PREFIX = '/api/v5';
 
 export const api = {
   login: `${API_PREFIX}/login`,
