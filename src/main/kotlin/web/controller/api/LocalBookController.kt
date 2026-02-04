@@ -57,6 +57,10 @@ open class LocalBookController:BaseController() {
         val  uploadedFile =  File(localpath)
         uploadedFile.writeBytes(file.contentAsBytes)
         val book = Book.initLocalBook(localpath, localpath, "")
+        if (book.bookUrl.lowercase().endsWith(".pdf")) {
+            val encodedPath = java.net.URLEncoder.encode(book.bookUrl, "UTF-8").replace("+", "%20")
+            book.coverUrl = "/api/v$apiversion/pdfImage?path=$encodedPath&page=0"
+        }
         val chapters = LocalBook.getChapterList(book)
         val booklist= Booklist().create().bookto(book)
         booklistMapper.getbook(user.id!!,book.bookUrl)?.let {
