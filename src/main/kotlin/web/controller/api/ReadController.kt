@@ -1209,12 +1209,17 @@ open class ReadController : BaseController() {
 
     private fun normalizeLocalAssetUrls(content: String): String {
         var output = content
-        output = output.replace("http//assets/", "/assets/")
-        output = output.replace("https//assets/", "/assets/")
-        output = output.replace("http:/assets/", "/assets/")
-        output = output.replace("https:/assets/", "/assets/")
-        output = output.replace("http://assets/", "/assets/")
-        output = output.replace("https://assets/", "/assets/")
+        val patterns = listOf(
+            "http//assets/" to "/assets/",
+            "https//assets/" to "/assets/",
+            "http:/assets/" to "/assets/",
+            "https:/assets/" to "/assets/",
+            "http://assets/" to "/assets/",
+            "https://assets/" to "/assets/"
+        )
+        patterns.forEach { (old, new) ->
+            output = output.replace(old, new, ignoreCase = true)
+        }
         return output
     }
 

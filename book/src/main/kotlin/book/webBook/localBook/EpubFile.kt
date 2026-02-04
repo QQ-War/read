@@ -325,19 +325,22 @@ class EpubFile(var book: Book) {
     private fun normalizeLocalAssetSrc(src: String): String {
         if (src.isBlank()) return src
         var s = src.trim()
-        if (s.startsWith("http//")) {
-            s = "http://" + s.removePrefix("http//")
-        } else if (s.startsWith("https//")) {
-            s = "https://" + s.removePrefix("https//")
-        } else if (s.startsWith("http:/") && !s.startsWith("http://")) {
-            s = "http://" + s.removePrefix("http:/")
-        } else if (s.startsWith("https:/") && !s.startsWith("https://")) {
-            s = "https://" + s.removePrefix("https:/")
+        val lower = s.lowercase()
+        if (lower.startsWith("http//")) {
+            s = "http://" + s.substring(6)
+        } else if (lower.startsWith("https//")) {
+            s = "https://" + s.substring(7)
+        } else if (lower.startsWith("http:/") && !lower.startsWith("http://")) {
+            s = "http://" + s.substring(6)
+        } else if (lower.startsWith("https:/") && !lower.startsWith("https://")) {
+            s = "https://" + s.substring(7)
         }
-        if (s.startsWith("http://assets/") || s.startsWith("https://assets/")) {
-            return "/assets/" + s.substringAfter("assets/")
+        
+        val sLower = s.lowercase()
+        if (sLower.startsWith("http://assets/") || sLower.startsWith("https://assets/")) {
+            return "/assets/" + s.substring(s.indexOf("assets/") + 7)
         }
-        if (s.startsWith("assets/")) {
+        if (sLower.startsWith("assets/")) {
             return "/assets/" + s.removePrefix("assets/")
         }
         return s
