@@ -1414,10 +1414,17 @@ open class ReadController : BaseController() {
         
         // 安全校验: 限制文件路径，防止读取任意系统文件
         val storageRoot = File(appCtx.externalFiles, "local").canonicalFile
-        var file = if (decodedPath.startsWith("/")) {
-             File(decodedPath).canonicalFile
+        val normalizedPath = when {
+            decodedPath.startsWith("/storage/local/") -> decodedPath.removePrefix("/storage/local/")
+            decodedPath.startsWith("storage/local/") -> decodedPath.removePrefix("storage/local/")
+            decodedPath.startsWith("/local/") -> decodedPath.removePrefix("/local/")
+            decodedPath.startsWith("local/") -> decodedPath.removePrefix("local/")
+            else -> decodedPath
+        }
+        var file = if (normalizedPath.startsWith("/")) {
+             File(normalizedPath).canonicalFile
         } else {
-             File(storageRoot, decodedPath).canonicalFile
+             File(storageRoot, normalizedPath).canonicalFile
         }
 
         if (!file.path.startsWith(storageRoot.path)) {
