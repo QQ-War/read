@@ -745,7 +745,9 @@ open class ReadController : BaseController() {
             )
         }
        // Companion.logger.info("read push")
-        Read.sendNotification(user,accessToken!!,url)
+        if (!accessToken.isNullOrBlank() && !url.isNullOrBlank()) {
+            Read.sendNotification(user, accessToken, url)
+        }
         JsonResponse(true).Data(read)
     }
 
