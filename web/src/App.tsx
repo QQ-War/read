@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import './App.css';
 import { login, getBookshelf, searchBook } from './api/readApi';
+import { resolveAssetUrl } from './utils/assets';
 import type { BookshelfItem } from './api/types';
 
 function App() {
@@ -83,7 +84,11 @@ function App() {
             {books.map((book) => (
               <div key={book.bookUrl} className="card">
                 <div className="cover">
-                  {book.coverUrl ? <img src={book.coverUrl} alt={book.bookName} /> : <div className="placeholder" />}
+                  {book.coverUrl ? (
+                    <img src={resolveAssetUrl(book.coverUrl, accessToken)} alt={book.bookName} />
+                  ) : (
+                    <div className="placeholder" />
+                  )}
                 </div>
                 <div className="meta">
                   <div className="title">{book.bookName}</div>

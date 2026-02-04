@@ -1,4 +1,5 @@
 import type { ApiResponse } from './types';
+import { authStore } from '../state/auth';
 
 const JSON_HEADERS: HeadersInit = {
   'Content-Type': 'application/json',
@@ -36,6 +37,11 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     },
     signal: options.signal,
   };
+
+  const token = authStore.getToken();
+  if (token) {
+    (init.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  }
 
   if (method !== 'GET' && options.body !== undefined) {
     if (typeof options.body === 'string' && (init.headers as Record<string, string>)['Content-Type'] === 'text/plain') {

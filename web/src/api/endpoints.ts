@@ -3,7 +3,7 @@ export const API_PREFIX = '/api/v5';
 export const api = {
   login: `${API_PREFIX}/login`,
   userInfo: `${API_PREFIX}/getUserInfo`,
-  bookshelf: `${API_PREFIX}/getBookshelfNew`,
+  bookshelf: `${API_PREFIX}/getBookshelf`,
   bookshelfPage: `${API_PREFIX}/getBookshelfPage`,
   bookInfo: `${API_PREFIX}/getBookinfo`,
   chapterList: `${API_PREFIX}/getChapterListNew`,
