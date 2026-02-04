@@ -229,8 +229,15 @@ open class ReadController : BaseController() {
                         setChapterListbycache(url, it,user.id!!)
                     }
                 }
+                if (chapterlist.isEmpty()) {
+                    throw DataThrowable().data(JsonResponse(false, "目录为空"))
+                }
+                val safeIndex = (index ?: 0).coerceIn(0, chapterlist.size - 1)
+                if (safeIndex != (index ?: 0)) {
+                    logger.warn("章节索引越界，已自动修正: index=${index} size=${chapterlist.size} -> $safeIndex")
+                }
                 val book = Book.initLocalBook(url, url, "")
-                val rawContent = LocalBook.getContent(book, chapterlist[index ?: 0]).toString()
+                val rawContent = LocalBook.getContent(book, chapterlist[safeIndex]).toString()
                 val content = normalizeLocalAssetUrls(rawContent)
                 if (content.contains("pdfImage")) {
                     val booklist = booklistMapper.getbook(user.id!!, url)
