@@ -71,12 +71,12 @@ open class HomeController {
 
     @Mapping("/new")
     fun newHome(ctx: Context) = run {
-        ctx.redirect("/new/index.html")
+        ctx.forward("/new/index.html")
     }
 
     @Mapping("/new/**")
     fun newFallback(ctx: Context) = run {
-        ctx.redirect("/new/index.html")
+        ctx.forward("/new/index.html")
     }
 
     @Mapping("/forget")

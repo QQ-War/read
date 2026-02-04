@@ -45,6 +45,8 @@ export interface BookContent {
   content?: string;
   type?: number;
   images?: string[];
+  text?: string;
+  rules?: unknown[];
 }
 
 export type SearchBook = BookshelfItem & Record<string, unknown>;

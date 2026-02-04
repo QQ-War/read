@@ -33,13 +33,17 @@ const BookPage = () => {
     if (!hasAccess) return;
     const run = async () => {
       setStatus('加载书籍...');
-      const [infoResp, chapterResp] = await Promise.all([
-        getBookInfo(token, bookUrl),
-        getChapterList(token, bookUrl),
-      ]);
+      const infoResp = await getBookInfo(token, bookUrl);
       if (infoResp.isSuccess && infoResp.data) {
         setBook(infoResp.data);
       }
+      const sourceUrl =
+        infoResp.isSuccess && infoResp.data?.origin
+          ? infoResp.data.origin
+          : bookUrl.toLowerCase().endsWith('.pdf') || bookUrl.toLowerCase().includes('/storage/local/')
+            ? 'loc_book'
+            : undefined;
+      const chapterResp = await getChapterList(token, bookUrl, sourceUrl, infoResp.data?.bookName || infoResp.data?.name);
       if (chapterResp.isSuccess && chapterResp.data) {
         setChapters(chapterResp.data);
       }
@@ -51,9 +55,12 @@ const BookPage = () => {
   const loadChapter = async (index: number) => {
     if (!token) return;
     setStatus('加载章节内容...');
-    const resp = await getBookContent(token, bookUrl, index);
-    if (resp.isSuccess && resp.data?.content) {
-      setContent(resp.data.content);
+    const sourceUrl =
+      book?.origin ||
+      (bookUrl.toLowerCase().endsWith('.pdf') || bookUrl.toLowerCase().includes('/storage/local/') ? 'loc_book' : undefined);
+    const resp = await getBookContent(token, bookUrl, index, sourceUrl, book?.bookName || book?.name);
+    if (resp.isSuccess && (resp.data?.content || resp.data?.text)) {
+      setContent(resp.data.content || resp.data.text || '');
       setImages(resp.data.images ?? []);
       setContentIndex(index);
       setStatus('');
@@ -114,7 +121,10 @@ const BookPage = () => {
       setStatus(resp.errorMsg || '刷新失败');
       return;
     }
-    const listResp = await getChapterList(token, bookUrl);
+    const sourceUrl =
+      book?.origin ||
+      (bookUrl.toLowerCase().endsWith('.pdf') || bookUrl.toLowerCase().includes('/storage/local/') ? 'loc_book' : undefined);
+    const listResp = await getChapterList(token, bookUrl, sourceUrl, book?.bookName || book?.name);
     if (listResp.isSuccess && listResp.data) {
       setChapters(listResp.data);
     }
