@@ -85,7 +85,7 @@ function App() {
               <div key={book.bookUrl} className="card">
                 <div className="cover">
                   {book.coverUrl ? (
-                    <img src={resolveAssetUrl(book.coverUrl, accessToken)} alt={book.bookName} />
+                    <img src={resolveAssetUrl(book.coverUrl)} alt={book.bookName} />
                   ) : (
                     <div className="placeholder" />
                   )}
