@@ -74,6 +74,16 @@ open class HomeController {
         ctx.forward("/new/index.html")
     }
 
+    @Mapping("/new/admin")
+    fun newAdmin(ctx: Context) = run {
+        ctx.forward("/new/admin/index.html")
+    }
+
+    @Mapping("/new/admin/**")
+    fun newAdminFallback(ctx: Context) = run {
+        ctx.forward("/new/admin/index.html")
+    }
+
     @Mapping("/new/**")
     fun newFallback(ctx: Context) = run {
         ctx.forward("/new/index.html")

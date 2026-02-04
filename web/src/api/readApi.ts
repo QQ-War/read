@@ -30,12 +30,12 @@ export const getBookInfo = (accessToken: string, bookUrl: string) =>
 
 export const getChapterList = (accessToken: string, bookUrl: string, bookSourceUrl?: string, bookname?: string) =>
   request<ChapterItem[]>(api.chapterList, {
-    query: { accessToken, bookUrl, bookSourceUrl, bookname, useReplaceRule: 1 },
+    query: { accessToken, url: bookUrl, bookSourceUrl, bookname, useReplaceRule: 1 },
   });
 
 export const getBookContent = (accessToken: string, bookUrl: string, index: number, bookSourceUrl?: string, bookname?: string) =>
   request<BookContent>(api.bookContent, {
-    query: { accessToken, bookUrl, index, bookSourceUrl, bookname, useReplaceRule: 1 },
+    query: { accessToken, url: bookUrl, index, bookSourceUrl, bookname, useReplaceRule: 1 },
   });
 
 export const searchBook = (accessToken: string, key: string, page = 1) =>
