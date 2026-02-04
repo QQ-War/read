@@ -1414,12 +1414,16 @@ open class ReadController : BaseController() {
         
         // 安全校验: 限制文件路径，防止读取任意系统文件
         val storageRoot = File(appCtx.externalFiles, "local").canonicalFile
-        val normalizedPath = when {
+        var normalizedPath = when {
             decodedPath.startsWith("/storage/local/") -> decodedPath.removePrefix("/storage/local/")
             decodedPath.startsWith("storage/local/") -> decodedPath.removePrefix("storage/local/")
             decodedPath.startsWith("/local/") -> decodedPath.removePrefix("/local/")
             decodedPath.startsWith("local/") -> decodedPath.removePrefix("local/")
             else -> decodedPath
+        }
+        // 兼容重复前缀（如 storage/local/storage/local/...）
+        while (normalizedPath.startsWith("storage/local/")) {
+            normalizedPath = normalizedPath.removePrefix("storage/local/")
         }
         var file = if (normalizedPath.startsWith("/")) {
              File(normalizedPath).canonicalFile
