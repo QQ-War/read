@@ -54,26 +54,17 @@ object PdfFile {
         if (!file.exists()) return null
 
         Loader.loadPDF(file).use { document ->
-            val stripper = PDFTextStripper()
             val pageStart = chapter.start?.toInt() ?: 0
             val pageEndExclusive = chapter.end?.toInt() ?: (pageStart + 1)
-            stripper.startPage = pageStart + 1
-            stripper.endPage = pageEndExclusive
-            val text = stripper.getText(document)
-
-            if (text.isNullOrBlank()) {
-                // 如果没有文字，返回图片模式
-                val absolutePath = File(book.bookUrl).absolutePath
-                val encodedPath = java.net.URLEncoder.encode(absolutePath, "UTF-8").replace("+", "%20")
-                val builder = StringBuilder()
-                val end = minOf(pageEndExclusive, document.numberOfPages)
-                for (page in pageStart until end) {
-                    builder.append("<img src=\"@@baseUrl@@/pdfImage?path=$encodedPath&page=$page\" style=\"width:100%\" />")
-                    builder.append("\n")
-                }
-                return builder.toString().trim()
+            val absolutePath = File(book.bookUrl).absolutePath
+            val encodedPath = java.net.URLEncoder.encode(absolutePath, "UTF-8").replace("+", "%20")
+            val builder = StringBuilder()
+            val end = minOf(pageEndExclusive, document.numberOfPages)
+            for (page in pageStart until end) {
+                builder.append("<img src=\"@@baseUrl@@/pdfImage?path=$encodedPath&page=$page\" style=\"width:100%\" />")
+                builder.append("\n")
             }
-            return text
+            return builder.toString().trim()
         }
     }
 }
