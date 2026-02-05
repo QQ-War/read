@@ -2,6 +2,7 @@ package web.controller.api
 
 import book.appCtx
 import book.model.Book
+import book.model.BookType
 import book.util.FileUtils
 import book.webBook.localBook.LocalBook
 import org.noear.solon.annotation.Controller
@@ -58,6 +59,7 @@ open class LocalBookController:BaseController() {
         uploadedFile.writeBytes(file.contentAsBytes)
         val book = Book.initLocalBook(localpath, localpath, "")
         if (book.bookUrl.lowercase().endsWith(".pdf")) {
+            book.type = BookType.image
             val encodedPath = java.net.URLEncoder.encode(book.bookUrl, "UTF-8").replace("+", "%20")
             book.coverUrl = "/api/v$apiversion/pdfImage?path=$encodedPath&page=0"
         }
