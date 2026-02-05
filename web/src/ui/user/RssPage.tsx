@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { authStore } from '../state/auth';
-import { delBookSource, getBookSourcesNew, getBookSourcesPage, saveBookSources, stopBookSource } from '../api/readApi';
+import { authStore } from '../../state/auth';
+import { delRssSource, getRssSourcesNew, getRssSourcesPage, saveRssSources, stopRssSource } from '../../api/readApi';
 
-const SourcesPage = () => {
+const RssPage = () => {
   const token = authStore.getToken();
   const [status, setStatus] = useState('');
   const [data, setData] = useState<Record<string, any>[]>([]);
@@ -11,8 +11,8 @@ const SourcesPage = () => {
   useEffect(() => {
     if (!token) return;
     const run = async () => {
-      setStatus('加载书源...');
-      const meta = await getBookSourcesPage(token);
+      setStatus('加载 RSS ...');
+      const meta = await getRssSourcesPage(token);
       if (!meta.isSuccess || !meta.data) {
         setStatus(meta.errorMsg || '加载失败');
         return;
@@ -20,7 +20,7 @@ const SourcesPage = () => {
       const pageCount = Number((meta.data as any).page || 1);
       const md5 = String((meta.data as any).md5 || '');
       const pages = await Promise.all(
-        Array.from({ length: pageCount }, (_, idx) => getBookSourcesNew(token, md5, idx + 1))
+        Array.from({ length: pageCount }, (_, idx) => getRssSourcesNew(token, md5, idx + 1))
       );
       const list: Record<string, any>[] = [];
       pages.forEach((p) => {
@@ -41,7 +41,7 @@ const SourcesPage = () => {
   return (
     <section className="panel">
       <div className="panel-header">
-        <h2>书源</h2>
+        <h2>RSS</h2>
         <span className="status-line">{status}</span>
       </div>
       <div className="panel-actions">
@@ -49,13 +49,13 @@ const SourcesPage = () => {
           className="code-input"
           value={editor}
           onChange={(e) => setEditor(e.target.value)}
-          placeholder="粘贴书源 JSON（数组或单条）后点击导入"
+          placeholder="粘贴 RSS JSON（数组或单条）后点击导入"
         />
         <button
           onClick={async () => {
             if (!token || !editor.trim()) return;
             setStatus('导入中...');
-            const resp = await saveBookSources(token, editor.trim());
+            const resp = await saveRssSources(token, editor.trim(), '');
             setStatus(resp.isSuccess ? '' : resp.errorMsg || '导入失败');
           }}
         >
@@ -64,17 +64,17 @@ const SourcesPage = () => {
       </div>
       <div className="list">
         {data.map((item) => (
-          <div key={item.bookSourceUrl} className="row">
+          <div key={item.sourceUrl || item.id} className="row">
             <div>
-              <div className="title">{item.bookSourceName}</div>
-              <div className="muted">{item.bookSourceUrl}</div>
+              <div className="title">{item.sourceName || item.name}</div>
+              <div className="muted">{item.sourceUrl}</div>
             </div>
             <div className="row-actions">
               <button
                 onClick={async () => {
                   if (!token) return;
                   const st = item.enabled ? '0' : '1';
-                  const resp = await stopBookSource(token, item.bookSourceUrl, st as '0' | '1');
+                  const resp = await stopRssSource(token, item.sourceUrl, st as '0' | '1');
                   if (!resp.isSuccess) {
                     setStatus(resp.errorMsg || '操作失败');
                     return;
@@ -88,12 +88,12 @@ const SourcesPage = () => {
               <button
                 onClick={async () => {
                   if (!token) return;
-                  const resp = await delBookSource(token, item.bookSourceUrl);
+                  const resp = await delRssSource(token, item.sourceUrl);
                   if (!resp.isSuccess) {
                     setStatus(resp.errorMsg || '删除失败');
                     return;
                   }
-                  setData(data.filter((d) => d.bookSourceUrl !== item.bookSourceUrl));
+                  setData(data.filter((d) => d.sourceUrl !== item.sourceUrl));
                 }}
               >
                 删除
@@ -106,4 +106,4 @@ const SourcesPage = () => {
   );
 };
 
-export default SourcesPage;
+export default RssPage;

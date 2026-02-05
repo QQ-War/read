@@ -1,13 +1,12 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import AppShell from './ui/AppShell';
-import LoginPage from './ui/LoginPage';
-import BookshelfPage from './ui/BookshelfPage';
-import SearchPage from './ui/SearchPage';
-import BookPage from './ui/BookPage';
-import SourcesPage from './ui/SourcesPage';
-import RssPage from './ui/RssPage';
-import TtsPage from './ui/TtsPage';
-import AdminPage from './ui/AdminPage';
+import AppShell from './ui/user/AppShell';
+import LoginPage from './ui/user/LoginPage';
+import BookshelfPage from './ui/user/BookshelfPage';
+import SearchPage from './ui/user/SearchPage';
+import BookPage from './ui/user/BookPage';
+import SourcesPage from './ui/user/SourcesPage';
+import RssPage from './ui/user/RssPage';
+import TtsPage from './ui/user/TtsPage';
 
 export const router = createBrowserRouter(
   [
@@ -24,7 +23,6 @@ export const router = createBrowserRouter(
         { path: 'sources', element: <SourcesPage /> },
         { path: 'rss', element: <RssPage /> },
         { path: 'tts', element: <TtsPage /> },
-        { path: 'admin', element: <AdminPage /> },
       ],
     },
   ],

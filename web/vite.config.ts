@@ -7,6 +7,7 @@ export default defineConfig({
   base: '/new/',
   plugins: [react()],
   build: {
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),

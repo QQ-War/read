@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { authStore } from '../state/auth';
-import { addTts, delTts, getTtsSourcesNew, getTtsSourcesPage } from '../api/readApi';
+import { authStore } from '../../state/auth';
+import { addTts, delTts, getTtsSourcesNew, getTtsSourcesPage } from '../../api/readApi';
 
 const TtsPage = () => {
   const token = authStore.getToken();
