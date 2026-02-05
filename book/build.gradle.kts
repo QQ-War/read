@@ -57,6 +57,3 @@ sourceSets {
 tasks.test {
     useJUnitPlatform()
 }
-kotlin {
-    jvmToolchain(22)
-}
