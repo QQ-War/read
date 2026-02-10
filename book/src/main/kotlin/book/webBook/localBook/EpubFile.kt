@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.net.URI
 import java.nio.charset.Charset
 import java.nio.file.Paths
 import java.util.*
@@ -197,41 +198,52 @@ class EpubFile(var book: Book) {
         elements.select("img[src=\"cover.jpeg\"]").forEachIndexed { i, it ->
             if (i > 0) it.remove()
         }
-        elements.select("img").forEach{
-           if(it.attr("src").contains("cover")){
+        elements.select("img, image").forEach{
+           val srcAttr = if (it.tagName() == "image") {
+               if (it.hasAttr("xlink:href")) "xlink:href" else "href"
+           } else "src"
+           val src = it.attr(srcAttr)
+
+           if(src.contains("cover")){
                var url = book.coverUrl ?: ""
                if (!url.startsWith("http://") && !url.startsWith("https://")) {
                    url = if (url.startsWith("/")) url else "/$url"
                }
-               it.attr("src", url)
+               it.attr(srcAttr, url)
            }else{
-               val src = it.attr("src")
-               val data=epubBook!!.resources.resourceMap[src]?.data
-               if(data != null){
-                   val coverFile = "${MD5Utils.md5Encode16(book.bookUrl+src)}.jpg"
+               val baseUri = it.baseUri()
+               val resolvedSrc = resolveHref(baseUri, src)
+               var resource = epubBook!!.resources.getByHref(resolvedSrc)
+               if (resource == null && resolvedSrc.startsWith("/")) {
+                   resource = epubBook!!.resources.getByHref(resolvedSrc.removePrefix("/"))
+               }
+               if(resource != null && resource.data != null){
+                   val coverFile = "${MD5Utils.md5Encode16(book.bookUrl + resource.href)}.jpg"
                    val relativeCoverUrl = Paths.get("assets", book.getUserNameSpace(), "covers", coverFile).toString()
                    var url="/" + relativeCoverUrl
                    val coverUrl = Paths.get(book.workRoot(), "storage", relativeCoverUrl).toString()
                    if (!File(coverUrl).exists()) {
-                       FileUtils.writeBytes(coverUrl,data)
+                       FileUtils.writeBytes(coverUrl, resource.data)
                    }
-                   it.attr("src", url)
+                   it.attr(srcAttr, url)
                } else {
                    val normalized = normalizeLocalAssetSrc(src)
                    if (normalized != src) {
-                       it.attr("src", normalized)
+                       it.attr(srcAttr, normalized)
                    }
                }
-
            }
         }
-        elements.select("img").forEach {
+        elements.select("img, image").forEach {
             if (it.attributesSize() <= 1) {
                 return@forEach
             }
-            val src = it.attr("src")
+            val srcAttr = if (it.tagName() == "image") {
+                if (it.hasAttr("xlink:href")) "xlink:href" else "href"
+            } else "src"
+            val src = it.attr(srcAttr)
             it.clearAttributes()
-            it.attr("src", src)
+            it.attr(srcAttr, src)
         }
         val tag = Book.rubyTag
         if (book.getDelTag(tag)) {
@@ -289,7 +301,7 @@ class EpubFile(var book: Book) {
     }
 
     private fun getBody(res: Resource, startFragmentId: String?, endFragmentId: String?): Element {
-        val body = Jsoup.parse(String(res.data, mCharset)).body()
+        val body = Jsoup.parse(String(res.data, mCharset), res.href).body()
         if (!startFragmentId.isNullOrBlank()) {
             body.getElementById(startFragmentId)?.previousElementSiblings()?.remove()
         }
@@ -315,6 +327,17 @@ class EpubFile(var book: Book) {
         children.select("script").remove()
         children.select("style").remove()
         return body
+    }
+
+    private fun resolveHref(base: String, rel: String): String {
+        if (rel.isBlank()) return rel
+        if (rel.contains("://")) return rel
+        return try {
+            val parent = if (base.contains("/")) base.substringBeforeLast("/") + "/" else ""
+            URI(parent).resolve(rel).path ?: rel
+        } catch (e: Exception) {
+            rel
+        }
     }
 
     private fun getImage(href: String): InputStream? {
