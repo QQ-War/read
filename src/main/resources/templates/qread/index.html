@@ -75,15 +75,20 @@
 </div>
 <script>
   (function () {
+    var loading = document.getElementById('loading_indicator');
     const removeLoading = function () {
-      const loading = document.getElementById('loading_indicator');
       if (loading) {
         loading.remove();
       }
     };
     window.addEventListener('flutter-first-frame', removeLoading, { once: true });
-    // 兜底：即使首帧事件未触发，也避免永久卡在 Logo 页
-    window.setTimeout(removeLoading, 10000);
+    // 兜底：若首帧未触发，不移除遮罩，避免空白页
+    window.setTimeout(function () {
+      if (!loading || !loading.parentNode) return;
+      loading.innerHTML = '' +
+        '<img class="indicator" src="/icons/app_icon.png"/>' +
+        '<p style="margin-top:12px;color:#666;font-size:14px;">页面加载失败，请刷新重试（建议清缓存后重试）。</p>';
+    }, 12000);
   })();
 </script>
 <script src="flutter_bootstrap.js" async></script>
