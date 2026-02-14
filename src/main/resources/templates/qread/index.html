@@ -73,6 +73,19 @@
     <div class="progress-bar-fill" style="width: 50%;"></div>
   </div>
 </div>
+<script>
+  (function () {
+    const removeLoading = function () {
+      const loading = document.getElementById('loading_indicator');
+      if (loading) {
+        loading.remove();
+      }
+    };
+    window.addEventListener('flutter-first-frame', removeLoading, { once: true });
+    // 兜底：即使首帧事件未触发，也避免永久卡在 Logo 页
+    window.setTimeout(removeLoading, 10000);
+  })();
+</script>
 <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
