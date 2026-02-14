@@ -87,18 +87,73 @@
     }
 
     var loading = document.getElementById('loading_indicator');
-    const removeLoading = function () {
+    var isRemoved = false;
+    var startupError = null;
+    var timeoutId = null;
+    var observer = null;
+
+    function removeLoading() {
+      if (isRemoved) return;
+      isRemoved = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (observer) {
+        observer.disconnect();
+      }
       if (loading) {
         loading.remove();
       }
-    };
-    window.addEventListener('flutter-first-frame', removeLoading, { once: true });
-    // 兜底：若首帧未触发，不移除遮罩，避免空白页
-    window.setTimeout(function () {
-      if (!loading || !loading.parentNode) return;
+    }
+
+    function likelyFlutterStarted() {
+      return !!(
+        document.querySelector('flt-glass-pane') ||
+        document.querySelector('flt-scene-host') ||
+        document.querySelector('flutter-view') ||
+        document.querySelector('canvas')
+      );
+    }
+
+    function renderFailure(text) {
+      if (!loading || !loading.parentNode || isRemoved) return;
+      var message = text || '页面加载失败，请刷新重试（建议清缓存后重试）。';
       loading.innerHTML = '' +
         '<img class="indicator" src="/icons/app_icon.png"/>' +
-        '<p style="margin-top:12px;color:#666;font-size:14px;">页面加载失败，请刷新重试（建议清缓存后重试）。</p>';
+        '<p style="margin-top:12px;color:#666;font-size:14px;">' + message + '</p>';
+    }
+
+    function checkStartedAndRemove() {
+      if (likelyFlutterStarted()) {
+        removeLoading();
+      }
+    }
+
+    window.addEventListener('flutter-first-frame', removeLoading, { once: true });
+
+    window.addEventListener('error', function (event) {
+      if (startupError || isRemoved) return;
+      startupError = (event && event.message) ? event.message : 'unknown script error';
+      renderFailure('页面加载失败：' + startupError);
+    });
+
+    window.addEventListener('unhandledrejection', function (event) {
+      if (startupError || isRemoved) return;
+      var reason = event && event.reason;
+      startupError = String(reason && reason.message ? reason.message : reason || 'promise rejected');
+      renderFailure('页面加载失败：' + startupError);
+    });
+
+    observer = new MutationObserver(checkStartedAndRemove);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    timeoutId = window.setTimeout(function () {
+      if (isRemoved) return;
+      if (likelyFlutterStarted()) {
+        removeLoading();
+        return;
+      }
+      renderFailure(startupError ? ('页面加载失败：' + startupError) : '页面加载失败，请刷新重试（建议清缓存后重试）。');
     }, 12000);
   })();
 </script>
