@@ -42,10 +42,20 @@ open class BaseController {
     val cachetime=60
 
     fun getuserbytocken(accessToken:String?): Users{
-        if (accessToken.isNullOrBlank()) {
+        var tokenStr = accessToken
+        if (tokenStr.isNullOrBlank()) {
+            // Try Authorization header (Bearer token)
+            val ctx = org.noear.solon.core.handle.Context.current()
+            val auth = ctx?.header("Authorization")
+            if (auth != null && auth.startsWith("Bearer ")) {
+                tokenStr = auth.substring(7)
+            }
+        }
+
+        if (tokenStr.isNullOrBlank()) {
             throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))
         }
-        val tocken= usertockenMapper.getUsertocken(accessToken) ?: throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))
+        val tocken= usertockenMapper.getUsertocken(tokenStr) ?: throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))
         val user= tocken.userid?.let { usersMapper.getUser(it)  } ?: throw DataThrowable().data(JsonResponse(false,NEED_LOGIN))
         return user
     }
